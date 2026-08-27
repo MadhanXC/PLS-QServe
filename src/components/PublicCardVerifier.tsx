@@ -41,13 +41,11 @@ import {
   Info,
   Mail
 } from 'lucide-react';
-
 interface PublicCardVerifierProps {
   cardId: string;
   onClose: () => void;
   onSuccessToast?: (msg: string) => void;
 }
-
 const US_STATES = [
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
   'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
@@ -55,7 +53,6 @@ const US_STATES = [
   'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
   'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
 ];
-
 const US_STATE_NAME_TO_CODE: Record<string, string> = {
   'ALABAMA': 'AL', 'ALASKA': 'AK', 'ARIZONA': 'AZ', 'ARKANSAS': 'AR', 'CALIFORNIA': 'CA',
   'COLORADO': 'CO', 'CONNECTICUT': 'CT', 'DELAWARE': 'DE', 'FLORIDA': 'FL', 'GEORGIA': 'GA',
@@ -69,7 +66,6 @@ const US_STATE_NAME_TO_CODE: Record<string, string> = {
   'VIRGINIA': 'VA', 'WASHINGTON': 'WA', 'WEST VIRGINIA': 'WV', 'WISCONSIN': 'WI', 'WYOMING': 'WY',
   'DISTRICT OF COLUMBIA': 'DC', 'PUERTO RICO': 'PR'
 };
-
 const getUsStateCode = (rawState?: string, rawStateCode?: string): string => {
   if (rawStateCode && rawStateCode.length === 2 && US_STATES.includes(rawStateCode.toUpperCase())) {
     return rawStateCode.toUpperCase();
@@ -89,7 +85,6 @@ const getUsStateCode = (rawState?: string, rawStateCode?: string): string => {
   }
   return 'CA';
 };
-
 interface AddressSuggestion {
   streetAddress: string;
   city: string;
@@ -97,7 +92,6 @@ interface AddressSuggestion {
   zipCode: string;
   fullDisplay: string;
 }
-
 const PRESET_US_ADDRESSES: AddressSuggestion[] = [
   { streetAddress: '100 Wilshire Blvd', city: 'Santa Monica', state: 'CA', zipCode: '90401', fullDisplay: '100 Wilshire Blvd, Santa Monica, CA 90401' },
   { streetAddress: '350 5th Ave', city: 'New York', state: 'NY', zipCode: '10118', fullDisplay: '350 5th Ave, New York, NY 10118' },
@@ -110,7 +104,6 @@ const PRESET_US_ADDRESSES: AddressSuggestion[] = [
   { streetAddress: '1 Park Ave', city: 'New York', state: 'NY', zipCode: '10016', fullDisplay: '1 Park Ave, New York, NY 10016' },
   { streetAddress: '1201 3rd Ave', city: 'Seattle', state: 'WA', zipCode: '98101', fullDisplay: '1201 3rd Ave, Seattle, WA 98101' },
 ];
-
 export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
   cardId,
   onClose,
@@ -120,7 +113,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
   const [card, setCard] = useState<QrCard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
-
   // Form State for Availing Services
   const [requestMode, setRequestMode] = useState<'standard' | 'custom'>('standard');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -129,19 +121,16 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
   const [contactNumber, setContactNumber] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [remarks, setRemarks] = useState('');
-
   // Photos Attachment State
   const [photos, setPhotos] = useState<string[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   // Schedule & Appointment Selection State
   const [adminSchedule, setAdminSchedule] = useState<AdminSchedule | null>(null);
   const [availableDates, setAvailableDates] = useState<Array<{ dateStr: string; label: string }>>([]);
   const [appointmentDate, setAppointmentDate] = useState<string>('');
-
   // Custom Request Preferred Week State
   const upcomingWeeks = React.useMemo(() => {
     const weeks: Array<{ id: string; label: string; dateRange: string }> = [];
@@ -151,35 +140,28 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
     const currentMonday = new Date(now);
     currentMonday.setDate(now.getDate() + diffToMonday);
     currentMonday.setHours(0, 0, 0, 0);
-
     let startOffset = 0;
     if (day === 5 && now.getHours() >= 16) {
       startOffset = 1;
     } else if (day === 6 || day === 0) {
       startOffset = 1;
     }
-
     for (let i = startOffset; i < startOffset + 8; i++) {
       const monday = new Date(currentMonday);
       monday.setDate(currentMonday.getDate() + i * 7);
       const friday = new Date(monday);
       friday.setDate(monday.getDate() + 4);
-
       const monMonth = monday.toLocaleDateString('en-US', { month: 'short' });
       const monDay = monday.getDate();
       const monYear = monday.getFullYear();
-
       const friMonth = friday.toLocaleDateString('en-US', { month: 'short' });
       const friDay = friday.getDate();
       const friYear = friday.getFullYear();
-
       const rangeStr = monMonth === friMonth
         ? `${monMonth} ${monDay} – ${friDay}, ${monYear}`
         : `${monMonth} ${monDay} – ${friMonth} ${friDay}, ${friYear}`;
-
       const labelPrefix = i === 0 ? 'This Week' : i === 1 ? 'Next Week' : `Week of ${monMonth} ${monDay}`;
       const fullWeekId = `Week of ${rangeStr}`;
-
       weeks.push({
         id: fullWeekId,
         label: `${labelPrefix} (${rangeStr})`,
@@ -188,33 +170,27 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
     }
     return weeks;
   }, []);
-
   const [targetWeek, setTargetWeek] = useState<string>('');
-
   useEffect(() => {
     if (upcomingWeeks.length > 0 && !targetWeek) {
       setTargetWeek(upcomingWeeks[0].id);
     }
   }, [upcomingWeeks, targetWeek]);
-
   // US Address Pack State
   const [streetAddress, setStreetAddress] = useState('');
   const [aptSuite, setAptSuite] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('CA');
   const [zipCode, setZipCode] = useState('');
-
   // Autocomplete Dropdown State
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>(PRESET_US_ADDRESSES);
   const [showAddressDropdown, setShowAddressDropdown] = useState(false);
   const [searchingAddress, setSearchingAddress] = useState(false);
-
   const [allowEditAddress, setAllowEditAddress] = useState(false);
   const [submittingAvailment, setSubmittingAvailment] = useState(false);
   const [availmentSuccessMsg, setAvailmentSuccessMsg] = useState<string | null>(null);
   const [lastSubmittedRequest, setLastSubmittedRequest] = useState<ServiceAvailment | null>(null);
   const [showCloseTabMessage, setShowCloseTabMessage] = useState(false);
-
   // Set of services already availed in previous requests on this card
   const alreadyAvailedServices = React.useMemo(() => {
     const set = new Set<string>();
@@ -229,13 +205,11 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
     }
     return set;
   }, [card]);
-
   // List of remaining services available for selection
   const availableServices = React.useMemo(() => {
     if (!card?.services) return [];
     return card.services.filter((svc) => !alreadyAvailedServices.has(svc.trim()));
   }, [card, alreadyAvailedServices]);
-
   const handleSelectAddressSuggestion = (suggestion: AddressSuggestion) => {
     setStreetAddress(suggestion.streetAddress);
     setCity(suggestion.city);
@@ -243,7 +217,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
     setZipCode(suggestion.zipCode);
     setShowAddressDropdown(false);
   };
-
   const handleStreetAddressInputChange = async (val: string) => {
     setStreetAddress(val);
     if (!val.trim()) {
@@ -251,17 +224,13 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
       setShowAddressDropdown(false);
       return;
     }
-
     setShowAddressDropdown(true);
-
     const filtered = PRESET_US_ADDRESSES.filter((a) =>
       a.fullDisplay.toLowerCase().includes(val.toLowerCase()) ||
       a.streetAddress.toLowerCase().includes(val.toLowerCase()) ||
       a.city.toLowerCase().includes(val.toLowerCase())
     );
-
     setAddressSuggestions(filtered.length > 0 ? filtered : PRESET_US_ADDRESSES);
-
     if (val.trim().length >= 3) {
       setSearchingAddress(true);
       try {
@@ -279,7 +248,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
               const cityVal = addr.city || addr.town || addr.village || addr.county || '';
               const stateVal = getUsStateCode(addr.state, addr.state_code);
               const zipVal = addr.postcode || '';
-
               return {
                 streetAddress: stAddr,
                 city: cityVal,
@@ -288,7 +256,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                 fullDisplay: `${stAddr}${cityVal ? ', ' + cityVal : ''}${stateVal ? ', ' + stateVal : ''}${zipVal ? ' ' + zipVal : ''}`
               };
             });
-
             const combined = [...apiResults, ...filtered];
             const unique = combined.filter((v, i, a) => a.findIndex((t) => t.fullDisplay === v.fullDisplay) === i);
             setAddressSuggestions(unique);
@@ -301,7 +268,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
       }
     }
   };
-
   useEffect(() => {
     async function fetchCard() {
       setLoading(true);
@@ -313,7 +279,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
           // Initialize Form Fields (Unticked initially as requested)
           setSelectedServices([]);
           setPhotos([]);
-
           // Customer contact info logic:
           // Blank on the first time (no saved customer info and no previous availment).
           // From the next time, automatically populate with the previously added customer name, email, and phone (like savedAddress).
@@ -321,11 +286,9 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
           const savedCustName = foundCard.savedContactName || latestAvailment?.contactPersonName || '';
           const savedCustEmail = foundCard.savedContactEmail || latestAvailment?.contactEmail || '';
           const savedCustPhone = foundCard.savedContactPhone || latestAvailment?.contactNumber || '';
-
           setContactPersonName(savedCustName);
           setContactEmail(savedCustEmail);
           setContactNumber(savedCustPhone);
-
           if (foundCard.savedAddress) {
             setStreetAddress(foundCard.savedAddress.streetAddress || '');
             setAptSuite(foundCard.savedAddress.aptSuite || '');
@@ -336,13 +299,11 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
           } else {
             setAllowEditAddress(true);
           }
-
           // Fetch Admin's Weekday Schedule for Current Month (1 single document read, cached)
           const now = new Date();
           const currentYear = now.getFullYear();
           const currentMonthIndex = now.getMonth();
           const currentMonthKey = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}`;
-
           let fallbackSched: AdminSchedule | null = null;
           try {
             if (foundCard.adminUid) {
@@ -351,31 +312,24 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
           } catch (e) {
             console.warn('Schedule fetch error:', e);
           }
-
           setAdminSchedule(fallbackSched);
-
           const enabledWeekdays = fallbackSched?.enabledWeekdays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
           const blockedDatesSet = new Set(fallbackSched?.blockedDates || []);
-
           // Calculate valid weekday dates for the next 4 weeks (28 days)
           const validDates: Array<{ dateStr: string; label: string }> = [];
           const fourWeeksFromNow = new Date(now.getTime() + 28 * 24 * 60 * 60 * 1000);
-
           for (let d = new Date(now.getFullYear(), now.getMonth(), now.getDate()); d <= fourWeeksFromNow; d.setDate(d.getDate() + 1)) {
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
             const dayNum = String(d.getDate()).padStart(2, '0');
             const dateStr = `${y}-${m}-${dayNum}`;
-
             const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
             const isBlocked = blockedDatesSet.has(dateStr);
-
             if (enabledWeekdays.includes(dayName) && !isBlocked) {
               const formattedLabel = `${dayName}, ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (${dateStr})`;
               validDates.push({ dateStr, label: formattedLabel });
             }
           }
-
           setAvailableDates(validDates);
           if (validDates.length > 0) {
             setAppointmentDate(validDates[0].dateStr);
@@ -390,12 +344,10 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
         setLoading(false);
       }
     }
-
     if (cardId) {
       fetchCard();
     }
   }, [cardId]);
-
   const handleStatusChange = async (newStatus: QrCardStatus) => {
     if (!card) return;
     setUpdating(true);
@@ -411,7 +363,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
       setUpdating(false);
     }
   };
-
   const toggleService = (svc: string) => {
     if (alreadyAvailedServices.has(svc.trim())) {
       alert(`The service "${svc}" has already been availed and cannot be requested again.`);
@@ -427,7 +378,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
       setSelectedServices([...selectedServices, svc]);
     }
   };
-
   const handleToggleSelectAllServices = () => {
     if (!card || !card.services) return;
     if (selectedServices.length > 0) {
@@ -437,7 +387,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
       setSelectedServices(availableServices.slice(0, 2));
     }
   };
-
   // Helper to compress and convert photo files to base64 data URLs
   const processImageFile = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -476,7 +425,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
       reader.readAsDataURL(file);
     });
   };
-
   const handlePhotoFilesSelected = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setUploadingPhotos(true);
@@ -491,15 +439,12 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
       setUploadingPhotos(false);
     }
   };
-
   const handleRemovePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
-
   const handleSubmitAvailmentForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!card) return;
-
     if (requestMode === 'custom') {
       if (!customRequestText.trim()) {
         alert('Please provide details for your custom service request.');
@@ -510,48 +455,39 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
         alert('Please select at least 1 service to avail.');
         return;
       }
-
       if (selectedServices.length > 2) {
         alert('You can select a maximum of 2 services at a time.');
         return;
       }
-
       const invalidSelected = selectedServices.filter((s) => alreadyAvailedServices.has(s.trim()));
       if (invalidSelected.length > 0) {
         alert(`The service(s) "${invalidSelected.join(', ')}" have already been availed and cannot be requested again.`);
         return;
       }
     }
-
     if (photos.length === 0) {
       alert('Photo attachment is MANDATORY. Please take or upload at least 1 photo of the service area or issue.');
       return;
     }
-
     if (!contactPersonName.trim()) {
       alert('Please enter the contact person name.');
       return;
     }
-
     if (!contactNumber.trim()) {
       alert('Please enter a contact phone number.');
       return;
     }
-
     if (!contactEmail.trim() || !contactEmail.includes('@')) {
       alert('Please enter a valid contact email address to receive your service confirmation and schedule updates.');
       return;
     }
-
     // Validate US Address pack
     if (!streetAddress.trim() || !city.trim() || !state.trim() || !zipCode.trim()) {
       alert('Please fill out the complete US address (Street, City, State, ZIP).');
       return;
     }
-
     setSubmittingAvailment(true);
     setAvailmentSuccessMsg(null);
-
     const addressObj: UsAddress = {
       streetAddress: streetAddress.trim(),
       aptSuite: aptSuite.trim() || '',
@@ -559,7 +495,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
       state: state.trim(),
       zipCode: zipCode.trim()
     };
-
     try {
       const isCustom = requestMode === 'custom';
       const updatedCard = await submitServiceAvailment(card.id, {
@@ -576,7 +511,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
         photos: photos,
         remarks: remarks.trim()
       });
-
       setCard(updatedCard);
       const newestRequest = updatedCard.availments && updatedCard.availments[0];
       setLastSubmittedRequest(newestRequest || null);
@@ -592,7 +526,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
       setSelectedServices([]);
       setCustomRequestText('');
       setRemarks('');
-
       if (onSuccessToast) {
         onSuccessToast(
           isCustom
@@ -607,7 +540,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
       setSubmittingAvailment(false);
     }
   };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -621,7 +553,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
       </div>
     );
   }
-
   if (error || !card) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -641,12 +572,13 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
       </div>
     );
   }
-
   const isExpired = new Date(card.validUntil) < new Date();
   const isFullyUsed = isQrCardFullyUsed(card);
-  const isValid = !isFullyUsed && card.status !== 'revoked' && card.status !== 'expired' && !isExpired;
+  const isValid =
+    card.status !== 'revoked' &&
+    card.status !== 'expired' &&
+    !isExpired;
   const hasSavedAddress = !!card.savedAddress;
-
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-3 sm:p-6 py-8">
       <div className="max-w-xl w-full bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden my-4">
@@ -670,7 +602,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
               <X className="w-5 h-5" />
             </button>
           )}
-
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/20 backdrop-blur-md mb-2">
             {isValid ? (
               <ShieldCheck className="w-7 h-7 text-emerald-200" />
@@ -678,15 +609,12 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
               <XCircle className="w-7 h-7 text-red-200" />
             )}
           </div>
-
           <span className="text-[10px] font-extrabold uppercase tracking-widest text-white/80 block">
             VERIFIED SERVICE PASS & AVAILMENT PORTAL
           </span>
-
           <h1 className="text-xl font-extrabold tracking-tight mt-0.5">
             {card.cardTitle}
           </h1>
-
           <div className="mt-2 flex items-center justify-center gap-2">
             <span className="font-mono text-xs font-bold text-blue-200 bg-white/10 px-2.5 py-1 rounded border border-white/20">
               {card.cardCode}
@@ -696,7 +624,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
             </span>
           </div>
         </div>
-
         <div className="p-6 space-y-6">
           {/* SUCCESS TICKET SCREEN (Shows ONLY this once request is submitted) */}
           {lastSubmittedRequest ? (
@@ -704,7 +631,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
               <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-sm">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
-
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-800 bg-emerald-200/80 px-3 py-1 rounded-full border border-emerald-300">
                   REQUEST CONFIRMED
@@ -716,7 +642,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                   Ticket Reference ID: <span className="font-mono font-bold text-emerald-950 bg-emerald-200/60 px-2 py-0.5 rounded">{lastSubmittedRequest.id}</span>
                 </p>
               </div>
-
               <div className="bg-white p-4 rounded-xl border border-emerald-200 text-xs space-y-2.5 text-left shadow-2xs">
                 <div className="flex items-start justify-between">
                   <span className="font-bold text-slate-500">Requested Services:</span>
@@ -782,7 +707,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                   </div>
                 )}
               </div>
-
               <div className="flex items-center justify-center gap-3 pt-2">
                 <button
                   type="button"
@@ -828,7 +752,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                     <span className="text-[10px] text-slate-400 italic block mt-0.5">Contact info saved on 1st request</span>
                   )}
                 </div>
-
                 <div>
                   <span className="text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-indigo-600" /> Pass Valid Until
@@ -843,7 +766,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                   )}
                 </div>
               </div>
-
               {/* MAIN FORM: SERVICE AVAILMENT */}
               {isValid ? (
               <form onSubmit={handleSubmitAvailmentForm} className="space-y-5">
@@ -862,7 +784,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                     </button>
                   )}
                 </div>
-
                 {/* MODE SELECTION TABS: STANDARD VS CUSTOM REQUEST */}
                 {card.allowCustomRequest !== false && (
                   <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
@@ -878,7 +799,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                       <CheckSquare className="w-3.5 h-3.5" />
                       Included Services ({availableServices.length})
                     </button>
-
                     <button
                       type="button"
                       onClick={() => setRequestMode('custom')}
@@ -893,7 +813,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                     </button>
                   </div>
                 )}
-
                 {/* 1A. STANDARD INCLUDED SERVICES (MAX 2 AT A TIME) */}
                 {requestMode === 'standard' ? (
                   <div className="space-y-2">
@@ -911,14 +830,12 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                         {selectedServices.length}/2 Selected
                       </span>
                     </div>
-
                     {availableServices.length === 0 && (
                       <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs font-semibold flex items-center gap-2">
                         <Lock className="w-4 h-4 text-amber-600 shrink-0" />
                         <span>All preset services on this pass have already been availed. You can still submit a custom request above.</span>
                       </div>
                     )}
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {card.services.map((svc, idx) => {
                         const isAvailed = alreadyAvailedServices.has(svc.trim());
@@ -971,11 +888,9 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                         Jobber Approval Required
                       </span>
                     </div>
-
                     <p className="text-[11px] text-purple-800">
                       Need service work other than the listed preset options? Enter your requirement below. A notification and email will be dispatched to our facility service team and administrator. The team will review and approve or decline your custom request.
                     </p>
-
                     {card.customRequestInstructions && (
                       <div className="p-2.5 bg-white/90 border border-purple-200 rounded-xl text-xs text-purple-900 space-y-0.5">
                         <span className="font-extrabold text-[10px] uppercase text-purple-700 block">
@@ -984,7 +899,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                         <p className="text-[11px] text-purple-950">{card.customRequestInstructions}</p>
                       </div>
                     )}
-
                     <textarea
                       rows={3}
                       value={customRequestText}
@@ -995,7 +909,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                     />
                   </div>
                 )}
-
             {/* Hidden File Inputs for Camera and Gallery Upload */}
             <input
               type="file"
@@ -1013,7 +926,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
               className="hidden"
               onChange={(e) => handlePhotoFilesSelected(e.target.files)}
             />
-
             {/* 2. PHOTO ATTACHMENT (MANDATORY FIELD) */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
@@ -1028,7 +940,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
               <p className="text-[11px] text-slate-500">
                 Please take or upload at least 1 photo showing the equipment/facility area or service issue.
               </p>
-
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
@@ -1038,7 +949,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                 >
                   <Camera className="w-4 h-4" /> Take Picture
                 </button>
-
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -1048,13 +958,11 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                   <Upload className="w-4 h-4 text-blue-600" /> Upload Photo
                 </button>
               </div>
-
               {uploadingPhotos && (
                 <div className="text-xs text-blue-600 font-bold flex items-center gap-2">
                   <span className="animate-spin">⌛</span> Processing photo file(s)...
                 </div>
               )}
-
               {/* Photos Preview Grid */}
               {photos.length > 0 ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
@@ -1085,7 +993,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                 </div>
               )}
             </div>
-
             {/* 2. SELECT PREFERRED TARGET WEEK (FOR BOTH STANDARD & CUSTOM) */}
             {requestMode === 'custom' ? (
               <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 space-y-3">
@@ -1098,7 +1005,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                     MON – FRI WEEK
                   </span>
                 </div>
-
                 <div className="space-y-1">
                   <label className="block text-[11px] font-bold text-purple-900">
                     Preferred Week for Custom Work *
@@ -1116,7 +1022,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                     ))}
                   </select>
                 </div>
-
                 <div className="p-3 bg-white/90 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-start gap-2">
                   <Info className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
                   <div className="space-y-0.5 leading-relaxed text-[11px]">
@@ -1142,7 +1047,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                     DIRECT ADMIN SCHEDULING
                   </span>
                 </div>
-
                 <div className="space-y-1">
                   <label className="block text-[11px] font-bold text-blue-900">
                     Preferred Week for Service *
@@ -1160,7 +1064,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                     ))}
                   </select>
                 </div>
-
                 <div className="p-3 bg-white/90 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-start gap-2">
                   <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                   <div className="space-y-0.5 leading-relaxed text-[11px]">
@@ -1172,7 +1075,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                 </div>
               </div>
             )}
-
             {/* 3. CONTACT PERSON, PHONE NUMBER & EMAIL ID */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
               <div className="space-y-1">
@@ -1189,7 +1091,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
-
               <div className="space-y-1">
                 <label className="block text-xs font-bold text-slate-700 flex items-center gap-1">
                   <Phone className="w-3.5 h-3.5 text-indigo-600" />
@@ -1204,7 +1105,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
-
               <div className="space-y-1">
                 <label className="block text-xs font-bold text-slate-700 flex items-center gap-1">
                   <Mail className="w-3.5 h-3.5 text-emerald-600" />
@@ -1220,7 +1120,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                 />
               </div>
             </div>
-
             {/* 3. US ADDRESS PACK (Address added only on 1st time availment) */}
             <div className="space-y-3 pt-3 border-t border-slate-200">
               <div className="flex items-center justify-between">
@@ -1228,7 +1127,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                   <MapPin className="w-4 h-4 text-emerald-600" />
                   Service Facility Address (US Address) *
                 </label>
-
                 {hasSavedAddress && (
                   <button
                     type="button"
@@ -1240,7 +1138,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                   </button>
                 )}
               </div>
-
               {/* Saved Address Banner */}
               {hasSavedAddress && !allowEditAddress ? (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-950 space-y-1">
@@ -1273,7 +1170,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                       </span>
                     </div>
                   )}
-
                   {/* STREET ADDRESS WITH LIVE AUTOCOMPLETE DROPDOWN */}
                   <div className="space-y-1 relative">
                     <label className="block text-[11px] font-bold text-slate-700 flex items-center justify-between">
@@ -1282,7 +1178,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                         <span className="text-[10px] text-blue-600 font-normal animate-pulse">Searching US locations...</span>
                       )}
                     </label>
-
                     <div className="relative">
                       <input
                         type="text"
@@ -1295,7 +1190,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                       />
                       <MapPin className="w-4 h-4 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
                     </div>
-
                     {/* FLOATING ADDRESS AUTOCOMPLETE DROPDOWN */}
                     {showAddressDropdown && addressSuggestions.length > 0 && (
                       <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100">
@@ -1328,7 +1222,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                       </div>
                     )}
                   </div>
-
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div className="space-y-1 sm:col-span-1">
                       <label className="block text-[11px] font-bold text-slate-700">Suite / Apt / Unit</label>
@@ -1340,7 +1233,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                       />
                     </div>
-
                     <div className="space-y-1 sm:col-span-2">
                       <label className="block text-[11px] font-bold text-slate-700">City *</label>
                       <input
@@ -1353,7 +1245,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                       />
                     </div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="block text-[11px] font-bold text-slate-700">State (US) *</label>
@@ -1367,7 +1258,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                         ))}
                       </select>
                     </div>
-
                     <div className="space-y-1">
                       <label className="block text-[11px] font-bold text-slate-700">ZIP Code *</label>
                       <input
@@ -1383,7 +1273,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                 </div>
               )}
             </div>
-
             {/* 4. OTHER REQUESTS OR REMARKS (OPTIONAL) */}
             <div className="space-y-1.5 pt-3 border-t border-slate-200">
               <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -1398,7 +1287,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none"
               />
             </div>
-
             {/* SUBMIT BUTTON */}
             <button
               type="submit"
@@ -1414,7 +1302,7 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
               )}
             </button>
               </form>
-              ) : !isFullyUsed && (card.status === 'revoked' || card.status === 'expired' || isExpired) ? (
+              ) : (card.status === 'revoked' || card.status === 'expired' || isExpired) ? (
                 <div className="p-5 bg-red-50 border-2 border-red-200 rounded-2xl text-red-900 space-y-2 text-center">
                   <XCircle className="w-8 h-8 text-red-600 mx-auto" />
                   <h3 className="font-extrabold text-sm">Service Requests Unavailable</h3>
@@ -1424,14 +1312,12 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                   </p>
                 </div>
               ) : null}
-
           {/* SERVICE REQUEST HISTORY LOG (IF ANY) */}
           {card.availments && card.availments.length > 0 && (
             <div className="pt-4 border-t border-slate-200 space-y-2">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
                 <History className="w-3.5 h-3.5 text-blue-600" /> Past Service Availments ({card.availments.length})
               </span>
-
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 {card.availments.map((req) => (
                   <div key={req.id} className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1.5">
@@ -1439,7 +1325,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                       <span className="font-mono text-[11px] text-blue-600">{req.id}</span>
                       <span className="text-[10px] text-slate-400">{new Date(req.timestamp).toLocaleString()}</span>
                     </div>
-
                     {req.isCustomRequest ? (
                       <div className="p-2 bg-purple-50 rounded-lg border border-purple-200 space-y-1">
                         <div className="flex items-center justify-between">
@@ -1478,7 +1363,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                         Services: <span className="text-blue-700 font-bold">{req.requestedServices.join(', ')}</span>
                       </div>
                     )}
-
                     {req.appointmentDate ? (
                       <div className="text-blue-900 font-bold text-[11px] flex items-center gap-1">
                         <span>📅 Scheduled Appt:</span> {req.appointmentDate}
@@ -1523,7 +1407,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
           )}
         </div>
       </div>
-
       {/* FULLSIZE PHOTO PREVIEW MODAL */}
       {previewImage && (
         <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
