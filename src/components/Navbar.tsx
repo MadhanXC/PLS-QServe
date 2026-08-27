@@ -35,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-base tracking-tight text-slate-900 leading-none">
-                PLS QServe
+                PLS QServe <span className="text-[9px] text-amber-600 font-extrabold uppercase tracking-wider">Prototype v0.1.0</span>
               </span>
             </div>
           </div>

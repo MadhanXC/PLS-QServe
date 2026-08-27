@@ -124,11 +124,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               <QrCode className="w-6 h-6" />
             )}
           </div>
+          <div className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider mb-1">
+            PLS QServe • Prototype v0.1.0
+          </div>
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
             {loginType === 'admin'
               ? 'Admin Portal Sign In'
               : loginType === 'user'
-              ? 'End User Sign In'
+              ? 'Client Portal Sign In'
               : 'Avail Pass Services'}
           </h2>
           <p className="text-sm text-slate-500 mt-1">

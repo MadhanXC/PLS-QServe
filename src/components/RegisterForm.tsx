@@ -85,6 +85,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         <div className="w-11 h-11 bg-blue-600 text-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-xs">
           <UserPlus className="w-6 h-6" />
         </div>
+        <div className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider mb-1">
+          PLS QServe • Prototype v0.1.0
+        </div>
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Register Admin</h2>
         <p className="text-sm text-slate-500 mt-1">Create a new administrative account</p>
       </div>

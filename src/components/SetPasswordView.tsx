@@ -118,6 +118,9 @@ export const SetPasswordView: React.FC<SetPasswordViewProps> = ({
           <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center mx-auto mb-3 backdrop-blur-xs border border-white/20">
             <KeyRound className="w-6 h-6 text-white" />
           </div>
+          <div className="text-[10px] font-extrabold text-amber-300 uppercase tracking-wider mb-1">
+            PLS QServe • Prototype v0.1.0
+          </div>
           <h1 className="text-xl font-extrabold tracking-tight">Premier Lighting Portal</h1>
           <p className="text-xs text-blue-200 mt-1">Managed Account Password Setup & Encryption</p>
         </div>
