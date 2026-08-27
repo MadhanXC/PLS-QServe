@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { DOMAIN, DEFAULT_FROM_EMAIL } from './_lib/resend';
+import { DOMAIN, DEFAULT_FROM_EMAIL } from './_lib/resend.js';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   res.status(200).json({

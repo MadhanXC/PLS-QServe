@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { dispatchResendEmail, DOMAIN } from './_lib/resend';
+import { dispatchResendEmail, DOMAIN } from './_lib/resend.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
