@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       recipientEmail,
       recipientName,
       recipientType, // 'managed_user' | 'admin' | 'customer'
-      actionType, // 'new_request' | 'approved' | 'rejected' | 'scheduled' | 'service_call_created'
+      actionType, // 'new_request' | 'approved' | 'rejected' | 'scheduled' | 'completed' | 'service_call_created'
       cardCode,
       cardTitle,
       customerName,
@@ -120,6 +120,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         badgeColor = '#5b21b6';
         ctaText = 'View Appointment in Portal';
       }
+    } else if (actionType === 'completed') {
+      subject = `✅ Service Completed: Pass ${cardCode}`;
+      bannerTitle = 'Service Completed';
+      bannerSubtitle = `The service appointment for Pass ${cardCode} has been completed. Completion proof is available in the service portal.`;
+      mainBadge = 'SERVICE COMPLETED';
+      badgeBg = '#dcfce7';
+      badgeColor = '#166534';
+      ctaText = recipientType === 'customer' ? 'View Service Pass' : 'View Service Record';
+      ctaLink = recipientType === 'customer' ? `${originUrl}/?cardId=${cardCode}` : originUrl;
     }
 
     const addressStr = address ? `${address.streetAddress || ''}${address.aptSuite ? ' ' + address.aptSuite : ''}, ${address.city || ''}, ${address.state || ''} ${address.zipCode || ''}` : 'Not provided';

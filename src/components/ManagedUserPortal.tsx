@@ -8,7 +8,8 @@ import {
   markAllInAppNotificationsAsRead,
   markInAppNotificationAsRead,
   subscribeToUserQrCards,
-  subscribeToInAppNotifications
+  subscribeToInAppNotifications,
+  isQrCardUsed
 } from '../lib/userService';
 import { hashPassword, verifyPassword } from '../lib/cryptoUtils';
 import { sendPasswordEmail } from '../lib/emailService';
@@ -23,6 +24,7 @@ import {
   ShieldAlert,
   LogOut,
   Calendar,
+  CalendarDays,
   CheckCircle2,
   Copy,
   Check,
@@ -436,6 +438,36 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
     return list.sort((a, b) => new Date(b.availment.timestamp).getTime() - new Date(a.availment.timestamp).getTime());
   }, [userQrCards]);
 
+  const pendingCustomRequests = allUserCustomRequests.filter(
+    ({ availment }) => !availment.approvalStatus || availment.approvalStatus === 'pending_approval'
+  );
+  const topPendingCustomRequests = pendingCustomRequests.slice(0, 3);
+
+  const scheduledServiceCalls = React.useMemo(() => {
+    return userQrCards
+      .flatMap((card) => (card.availments || [])
+        .filter((availment) => !!availment.appointmentDate || availment.status === 'completed')
+        .map((availment) => ({ card, availment })))
+      .sort((a, b) => {
+        const dateComparison = (a.availment.appointmentDate || '').localeCompare(b.availment.appointmentDate || '');
+        return dateComparison || (a.availment.appointmentTimeSlot || '').localeCompare(b.availment.appointmentTimeSlot || '');
+      });
+  }, [userQrCards]);
+
+  const completedServiceCalls = scheduledServiceCalls.filter(({ availment }) => availment.status === 'completed');
+  const upcomingServiceCalls = scheduledServiceCalls.filter(({ availment }) => availment.status !== 'completed');
+  const SERVICE_SCHEDULE_PAGE_SIZE = 10;
+  const [serviceScheduleView, setServiceScheduleView] = useState<'upcoming' | 'completed'>('upcoming');
+  const [serviceSchedulePage, setServiceSchedulePage] = useState(1);
+  const passSectionRef = React.useRef<HTMLDivElement>(null);
+  const visibleServiceCalls = serviceScheduleView === 'completed' ? completedServiceCalls : upcomingServiceCalls;
+  const paginatedScheduledServiceCalls = visibleServiceCalls.slice(
+    (serviceSchedulePage - 1) * SERVICE_SCHEDULE_PAGE_SIZE,
+    serviceSchedulePage * SERVICE_SCHEDULE_PAGE_SIZE
+  );
+  const paginatedUpcomingServiceCalls = paginatedScheduledServiceCalls.filter(({ availment }) => availment.status !== 'completed');
+  const paginatedCompletedServiceCalls = paginatedScheduledServiceCalls.filter(({ availment }) => availment.status === 'completed');
+
   const unreadNotificationsCount = React.useMemo(() => {
     return notifications.filter((n) => !n.read).length;
   }, [notifications]);
@@ -458,8 +490,8 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
               <UserCheck className="w-5 h-5" />
             </div>
             <div>
-              <span className="font-bold text-sm tracking-tight block text-white">Service Pass Portal</span>
-              <span className="text-[10px] text-slate-400 block font-medium">Enterprise Management System</span>
+              <span className="font-bold text-sm tracking-tight block text-white">Client Portal</span>
+              <span className="text-[10px] text-slate-400 block font-medium">Service Scheduling &amp; Management</span>
             </div>
           </div>
 
@@ -754,8 +786,182 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
           </div>
         )}
 
+        {/* Custom Requests Awaiting Approval */}
+        {pendingCustomRequests.length > 0 && (
+          <div className="order-0 bg-amber-50/80 px-3 py-2.5 rounded-lg border-l-4 border-amber-400 border-y border-r border-amber-200 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-amber-200 text-amber-800 rounded-md flex items-center justify-center">
+                  <Sparkles className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <h2 className="font-extrabold text-amber-950 text-xs">Custom Requests Awaiting Approval</h2>
+                  <p className="text-[10px] text-amber-800">Jobber action required</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-black text-amber-900 bg-amber-200 px-2 py-1 rounded border border-amber-300 whitespace-nowrap">
+                {pendingCustomRequests.length} Action{pendingCustomRequests.length !== 1 ? 's' : ''} Needed
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {topPendingCustomRequests.map(({ card, availment }, index) => (
+                <button
+                  key={`${card.id}-${availment.id}`}
+                  type="button"
+                  onClick={() => setSelectedCustomDetailModal({ card, availment })}
+                  aria-label={`Review custom request ${index + 1} for ${availment.contactPersonName || 'customer'}`}
+                  className="text-left rounded-lg bg-white border border-amber-200 hover:border-amber-400 hover:bg-amber-50/70 transition-colors p-2.5 shadow-sm"
+                >
+                  <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-amber-800">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Request {index + 1}
+                  </span>
+                  <span className="mt-1 block truncate text-xs font-bold text-slate-900">{availment.contactPersonName || 'Customer'}</span>
+                  <span className="mt-0.5 block line-clamp-1 text-[10px] text-slate-600">{availment.customRequestDetails || availment.remarks || 'Custom service request'}</span>
+                  <span className="mt-1 block text-[9px] font-bold text-blue-700">Click to review</span>
+                </button>
+              ))}
+            </div>
+
+            {pendingCustomRequests.length > 3 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCardCategoryTab('custom_requests');
+                  setPortalViewMode('list');
+                  setPassesCurrentPage(1);
+                  window.setTimeout(() => passSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+                }}
+                className="w-full py-1.5 border border-amber-300 bg-white/80 hover:bg-amber-100 text-amber-900 font-extrabold rounded-md text-[10px] transition-colors"
+              >
+                View Full Custom Request List ({pendingCustomRequests.length})
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Service Appointments & History */}
+        <div className="order-1 bg-white p-6 rounded-xl border border-emerald-200 shadow-sm space-y-5">
+          <div className="flex items-center justify-between border-b border-emerald-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-100">
+                <CalendarDays className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-extrabold text-slate-900 text-base">Service Appointments &amp; History</h2>
+                <p className="text-xs text-slate-500">Appointments, locations, and service details at a glance</p>
+              </div>
+            </div>
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+              {upcomingServiceCalls.length} Upcoming
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <button type="button" onClick={() => { setServiceScheduleView('upcoming'); setServiceSchedulePage(1); }} className={`text-left rounded-lg border px-3 py-2 transition-colors ${serviceScheduleView === 'upcoming' ? 'bg-blue-100 border-blue-300 ring-1 ring-blue-200' : 'bg-blue-50 border-blue-100 hover:bg-blue-100'}`}>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-blue-600">Upcoming</div>
+              <div className="text-xl font-extrabold text-blue-900">{upcomingServiceCalls.length}</div>
+            </button>
+            <button type="button" onClick={() => { setServiceScheduleView('completed'); setServiceSchedulePage(1); }} className={`text-left rounded-lg border px-3 py-2 transition-colors ${serviceScheduleView === 'completed' ? 'bg-emerald-100 border-emerald-300 ring-1 ring-emerald-200' : 'bg-emerald-50 border-emerald-100 hover:bg-emerald-100'}`}>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Completed</div>
+              <div className="text-xl font-extrabold text-emerald-900">{completedServiceCalls.length}</div>
+            </button>
+            <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 col-span-2 sm:col-span-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total Scheduled</div>
+              <div className="text-xl font-extrabold text-slate-900">{scheduledServiceCalls.length}</div>
+            </div>
+          </div>
+
+          {serviceScheduleView === 'upcoming' && (upcomingServiceCalls.length === 0 ? (
+            <p className="py-4 text-center text-xs font-medium text-slate-400">No upcoming service appointments.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-slate-100">
+                  <tr>
+                    <th className="px-3 py-2">Date & Time</th>
+                    <th className="px-3 py-2">Service Pass</th>
+                    <th className="px-3 py-2">Customer</th>
+                    <th className="px-3 py-2">Address & Details</th>
+                    <th className="px-3 py-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedUpcomingServiceCalls.map(({ card, availment }) => (
+                    <tr key={`${card.id}-${availment.id}`} className="hover:bg-slate-50">
+                      <td className="px-3 py-3 font-bold text-slate-800 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                          {availment.appointmentDate}
+                        </div>
+                        {availment.appointmentTimeSlot && (
+                          <div className="mt-1 flex items-center gap-1.5 text-[10px] font-medium text-slate-500">
+                            <Clock className="w-3 h-3" /> {availment.appointmentTimeSlot}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="font-bold text-slate-800">{card.cardTitle}</div>
+                        <div className="font-mono text-[10px] text-blue-600">{card.cardCode}</div>
+                      </td>
+                      <td className="px-3 py-3 font-semibold text-slate-700">{availment.contactPersonName || 'Customer'}</td>
+                      <td className="px-3 py-3 min-w-[220px]">
+                        <div className="flex items-start gap-1.5 text-[10px] text-slate-600">
+                          <MapPin className="w-3 h-3 mt-0.5 shrink-0 text-rose-500" />
+                          <span>{availment.address ? `${availment.address.streetAddress}, ${availment.address.city}, ${availment.address.state} ${availment.address.zipCode}` : 'Address not provided'}</span>
+                        </div>
+                        <div className="mt-1 font-medium text-slate-700">{availment.customRequestDetails || availment.remarks || (availment.requestedServices || []).join(', ') || 'Service Request'}</div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className={`px-2 py-1 rounded border text-[10px] font-extrabold uppercase ${
+                          availment.status === 'completed'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                          {availment.status === 'completed' ? 'Completed' : 'Scheduled'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+
+          {serviceScheduleView === 'completed' && completedServiceCalls.length > 0 && (
+            <div className="border-t border-emerald-100 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-extrabold text-emerald-900">Completed Services</h3>
+                  <p className="text-[11px] text-slate-500">Completed service history and completion details</p>
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded">{completedServiceCalls.length} Completed</span>
+              </div>
+              <div className="space-y-2">
+                {paginatedCompletedServiceCalls.map(({ card, availment }) => (
+                  <div key={`${card.id}-${availment.id}`} className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-3 flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-5">
+                    <div className="font-bold text-slate-800 min-w-[150px]">{availment.appointmentDate}<div className="text-[10px] font-mono font-medium text-blue-600">{card.cardCode}</div></div>
+                    <div className="min-w-[150px]"><div className="font-bold text-slate-800">{card.cardTitle}</div><div className="text-[10px] text-slate-600">{availment.contactPersonName || 'Customer'}</div></div>
+                    <div className="flex-1 text-[11px] text-slate-600"><span className="font-semibold text-slate-700">{availment.customRequestDetails || availment.remarks || (availment.requestedServices || []).join(', ') || 'Service Request'}</span>{availment.address && <span className="block mt-0.5">{availment.address.streetAddress}, {availment.address.city}, {availment.address.state} {availment.address.zipCode}</span>}</div>
+                    <span className="self-start lg:self-auto px-2 py-1 rounded border border-emerald-200 bg-white text-[10px] font-extrabold uppercase text-emerald-700">Completed</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {scheduledServiceCalls.length > SERVICE_SCHEDULE_PAGE_SIZE && (
+            <PaginationControls
+              currentPage={serviceSchedulePage}
+              totalItems={visibleServiceCalls.length}
+              pageSize={SERVICE_SCHEDULE_PAGE_SIZE}
+              onPageChange={setServiceSchedulePage}
+            />
+          )}
+        </div>
+
         {/* Assigned QR Service Pass Cards */}
-        <div><div className="order-2 bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-6">
+        <div ref={passSectionRef} className="order-2"><div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100">
@@ -814,7 +1020,7 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Not Used Cards</span>
+                  <span>Active / Unused Cards</span>
                   <span
                     className={`px-1.5 py-0.5 rounded-full text-[10px] ${
                       cardCategoryTab === 'not_used'
@@ -836,7 +1042,7 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                   }`}
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Used Cards</span>
+                  <span>Active / Used Cards</span>
                   <span
                     className={`px-1.5 py-0.5 rounded-full text-[10px] ${
                       cardCategoryTab === 'used'
@@ -1322,13 +1528,13 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                             </td>
                             <td className="px-4 py-3.5">
                               <span
-                                className={`px-2 py-1 text-[10px] font-extrabold rounded uppercase tracking-wider ${
+                                className={`px-2 py-1 text-[10px] font-extrabold rounded uppercase tracking-wider whitespace-nowrap ${
                                   card.status === 'active'
                                     ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                     : 'bg-red-100 text-red-800 border border-red-200'
                                 }`}
                               >
-                                {card.status}
+                                {card.status === 'active' ? `Active / ${isQrCardUsed(card) ? 'Used' : 'Unused'}` : card.status}
                               </span>
                             </td>
                             <td className="px-4 py-3.5 text-right">
@@ -1504,7 +1710,7 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                               DIGITAL SERVICE PASS
                             </span>
                             <span
-                              className={`px-2 py-0.5 text-[10px] font-extrabold rounded uppercase tracking-wider ${
+                              className={`px-2 py-0.5 text-[10px] font-extrabold rounded uppercase tracking-wider whitespace-nowrap ${
                                 card.status === 'active'
                                   ? isLight
                                     ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
@@ -1514,7 +1720,7 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                                   : 'bg-red-500/20 text-red-300 border border-red-500/30'
                               }`}
                             >
-                              {card.status}
+                              {card.status === 'active' ? `Active / ${isQrCardUsed(card) ? 'Used' : 'Unused'}` : card.status}
                             </span>
                           </div>
                           <h3 className={`font-extrabold text-lg tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>

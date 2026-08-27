@@ -17,7 +17,7 @@ export interface SendCustomRequestEmailParams {
   recipientEmail: string;
   recipientName?: string;
   recipientType: 'managed_user' | 'admin' | 'customer';
-  actionType: 'new_request' | 'approved' | 'rejected' | 'scheduled' | 'service_call_created';
+  actionType: 'new_request' | 'approved' | 'rejected' | 'scheduled' | 'completed' | 'service_call_created';
   cardCode: string;
   cardTitle: string;
   customerName: string;
@@ -58,7 +58,12 @@ export async function sendCustomRequestNotification(params: SendCustomRequestEma
       return { success: false, skipped: true, message: data.message || 'Notification skipped (API key not configured)' };
     }
 
-    return { success: true, message: `Notification email dispatched to ${params.recipientEmail}` };
+    return {
+      success: data.emailSent !== false,
+      message: data.emailSent === false
+        ? (data.warning || 'Email was not accepted for delivery')
+        : `Notification email dispatched to ${params.recipientEmail}`
+    };
   } catch (err: any) {
     return { success: false, message: err?.message || 'Email delivery skipped' };
   }

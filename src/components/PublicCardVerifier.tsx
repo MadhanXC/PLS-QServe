@@ -5,7 +5,7 @@ import {
   updateQrCardStatus,
   submitServiceAvailment,
   getAdminSchedule,
-  isQrCardFullyUsed
+  isQrCardUsed
 } from '../lib/userService';
 import { QrCodeCanvas } from './QrCodeCanvas';
 import {
@@ -573,7 +573,7 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
     );
   }
   const isExpired = new Date(card.validUntil) < new Date();
-  const isFullyUsed = isQrCardFullyUsed(card);
+  const isUsed = isQrCardUsed(card);
   const isValid =
     card.status !== 'revoked' &&
     card.status !== 'expired' &&
@@ -587,7 +587,7 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
           className={`p-6 text-white text-center relative ${
             isValid
               ? 'bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-900'
-              : isFullyUsed
+              : isUsed
               ? 'bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900'
               : 'bg-gradient-to-r from-red-900 via-rose-900 to-slate-900'
           }`}
@@ -620,7 +620,7 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
               {card.cardCode}
             </span>
             <span className="text-xs font-bold text-white/90 bg-white/10 px-2.5 py-1 rounded border border-white/20 uppercase">
-              STATUS: {isFullyUsed ? 'used' : card.status}
+              STATUS: {card.status === 'active' ? `Active / ${isUsed ? 'Used' : 'Unused'}` : card.status}
             </span>
           </div>
         </div>

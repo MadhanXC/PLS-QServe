@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { QrCard, ManagedUser, QrCardStatus, AdminUserProfile, ServiceAvailment } from '../types';
-import { calculateUnavailedExpiryDate, isQrCardFullyUsed } from '../lib/userService';
+import { calculateUnavailedExpiryDate, isQrCardFullyUsed, isQrCardUsed } from '../lib/userService';
 import { QrCodeCanvas } from './QrCodeCanvas';
 import { PaginationControls } from './PaginationControls';
 import {
@@ -77,10 +77,10 @@ interface QrCardGeneratorViewProps {
 }
 
 const PRESET_SERVICES = [
-  'Power Wash 1',
-  'Power Wash 2',
+  'Canopy Service',
+  'Price sign repair',
+  'Powerwash',
   'Paint Touchup',
-  'Canopy Service'
 ];
 
 export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
@@ -144,10 +144,10 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
   // Creation Form State
   const [cardTitle, setCardTitle] = useState('Power Wash & Facility Service Pass');
   const [selectedServices, setSelectedServices] = useState<string[]>([
-    'Power Wash 1',
-    'Power Wash 2',
+    'Canopy Service',
+    'Price sign repair',
+    'Powerwash',
     'Paint Touchup',
-    'Canopy Service'
   ]);
   const [customServiceInput, setCustomServiceInput] = useState('');
   const [allowCustomRequest, setAllowCustomRequest] = useState(true);
@@ -376,7 +376,7 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
     } else if (statusFilter === 'not_used') {
       matchesStatus = !card.availments || card.availments.length === 0;
     } else if (statusFilter === 'used') {
-      matchesStatus = isQrCardFullyUsed(card);
+      matchesStatus = isQrCardUsed(card);
     } else if (statusFilter === 'expired') {
       matchesStatus = card.status === 'expired';
     }
@@ -715,7 +715,7 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">QR Card Generator & Service Passes</h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Create assigned QR cards with unique verification links for Power Wash 1, Power Wash 2, Paint Touchup & Canopy Service.
+            Create assigned QR cards with unique verification links for Canopy Service, Price sign repair, Powerwash & Paint Touchup.
           </p>
         </div>
 
@@ -736,26 +736,18 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
             Export Cards CSV
           </button>
           <button
-            onClick={handleExportServiceCallsCSV}
-            className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 font-semibold text-xs rounded-lg transition-colors flex items-center gap-1.5"
-            title="Export granular ledger of all booked service call requests as CSV"
-          >
-            <Download className="w-4 h-4 text-blue-600" />
-            Export Service Calls CSV
-          </button>
-          <button
             onClick={handleBatchPrint}
             className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-lg transition-colors flex items-center gap-1.5 border border-slate-700"
           >
             <Printer className="w-4 h-4" />
-            Batch Print Cards (Passes)
+            Print Cards(Passes)
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center gap-1.5"
           >
             <Sparkles className="w-4 h-4" />
-            Generate Assigned Cards
+            Generate Service QR Cards
           </button>
         </div>
       </div>
@@ -772,7 +764,7 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
 
         <div className="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/20 shadow-xs">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Not Used Cards</span>
+            <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Active / Unused Cards</span>
             <Sparkles className="w-4 h-4 text-emerald-600" />
           </div>
           <span className="text-2xl font-extrabold text-emerald-600">{unusedCount}</span>
@@ -780,7 +772,7 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
 
         <div className="bg-white p-4 rounded-xl border border-blue-200 bg-blue-50/20 shadow-xs">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Used Cards</span>
+            <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Active / Used Cards</span>
             <CheckCircle2 className="w-4 h-4 text-blue-600" />
           </div>
           <span className="text-2xl font-extrabold text-blue-600">{usedCount}</span>
@@ -820,9 +812,9 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
               className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
             >
               <option value="all">All Passes ({qrCards.length})</option>
-              <option value="not_used">🟢 Not Used Cards ({unusedCount})</option>
-              <option value="used">🔵 Used Cards ({usedCount})</option>
-              <option value="active">Active Only</option>
+              <option value="not_used">🟢 Active / Unused ({unusedCount})</option>
+              <option value="used">🔵 Active / Used ({usedCount})</option>
+              <option value="active">Active / Unused Only</option>
               <option value="revoked">Revoked / Disabled</option>
               <option value="expired">Expired</option>
             </select>
@@ -896,7 +888,7 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
                 className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
               >
                 <Printer className="w-3.5 h-3.5" />
-                Batch Print Selected ({selectedCardIds.length})
+                Print Selected ({selectedCardIds.length})
               </button>
             </>
           )}
@@ -917,7 +909,7 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
             }`}
           >
             <Trash2 className="w-4 h-4" />
-            Bulk Delete ({selectedCardIds.length})
+            Delete Selected ({selectedCardIds.length})
           </button>
         </div>
       </div>
@@ -936,7 +928,7 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
             onClick={() => setShowCreateModal(true)}
             className="px-4 py-2 bg-blue-600 text-white font-semibold text-xs rounded-lg shadow-sm hover:bg-blue-500 transition-colors inline-flex items-center gap-1.5"
           >
-            <Sparkles className="w-4 h-4" /> Generate Assigned Cards
+            <Sparkles className="w-4 h-4" /> Generate Service QR Cards
           </button>
         </div>
       ) : viewMode === 'grid' ? (
@@ -945,7 +937,7 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
           {paginatedCards.map((card) => {
             const isRevoked = card.status === 'revoked';
             const isExpiredStatus = card.status === 'expired';
-            const isUsed = !isRevoked && !isExpiredStatus && isQrCardFullyUsed(card);
+            const isUsed = !isRevoked && !isExpiredStatus && isQrCardUsed(card);
             const isExpired = new Date(card.validUntil) < new Date();
             const isSelected = selectedCardIds.includes(card.id);
 
@@ -1051,8 +1043,8 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
                             : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                         }`}
                       >
-                        <option value="active">Active</option>
-                        <option value="used">Redeemed / Used</option>
+                        <option value="active">Active / Unused</option>
+                        <option value="used">Active / Used</option>
                         <option value="revoked">Revoked</option>
                         <option value="expired">Expired</option>
                       </select>
@@ -1295,20 +1287,20 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
                       {/* Status */}
                       <td className="py-3 px-4">
                         <select
-                          value={card.status === 'revoked' || card.status === 'expired' ? card.status : isQrCardFullyUsed(card) ? 'used' : card.status === 'used' ? 'active' : card.status}
+                            value={card.status === 'revoked' || card.status === 'expired' ? card.status : isQrCardUsed(card) ? 'used' : card.status === 'used' ? 'active' : card.status}
                           onChange={(e) => onUpdateStatus(card.id, e.target.value as QrCardStatus)}
                           className={`text-[11px] font-bold px-2 py-1 rounded border ${
                             card.status === 'active'
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                               : card.status === 'revoked' || card.status === 'expired'
                               ? false
-                              : isQrCardFullyUsed(card)
+                              : isQrCardUsed(card)
                               ? 'bg-amber-50 text-amber-700 border-amber-200'
                               : 'bg-red-50 text-red-700 border-red-200'
                           }`}
                         >
-                          <option value="active">Active</option>
-                          <option value="used">Redeemed / Used</option>
+                          <option value="active">Active / Unused</option>
+                          <option value="used">Active / Used</option>
                           <option value="revoked">Revoked</option>
                           <option value="expired">Expired</option>
                         </select>
@@ -1576,6 +1568,29 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
                     Add
                   </button>
                 </div>
+
+                <div className="min-h-8 rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-2">
+                  <span className="mr-2 text-[10px] font-bold uppercase tracking-wide text-blue-700">Selected:</span>
+                  {selectedServices.length > 0 ? (
+                    <span className="inline-flex flex-wrap gap-1 align-middle">
+                      {selectedServices.map((svc) => (
+                        <span key={svc} className="inline-flex items-center gap-1 rounded bg-white px-2 py-0.5 text-[11px] font-semibold text-blue-900 border border-blue-200">
+                          {svc}
+                          <button
+                            type="button"
+                            onClick={() => toggleService(svc)}
+                            className="text-blue-500 hover:text-blue-800"
+                            aria-label={`Remove ${svc}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-medium text-slate-500">No services selected</span>
+                  )}
+                </div>
               </div>
 
               {/* Custom Request Configuration */}
@@ -1841,8 +1856,8 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
                   onChange={(e) => setEditStatus(e.target.value as QrCardStatus)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
                 >
-                  <option value="active">Active</option>
-                  <option value="used">Redeemed / Used</option>
+                  <option value="active">Active / Unused</option>
+                  <option value="used">Active / Used</option>
                   <option value="revoked">Revoked</option>
                   <option value="expired">Expired</option>
                 </select>
@@ -2303,7 +2318,12 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
                   <div key={card.id} className="credit-card-pair-wrapper border-b border-slate-200 pb-6 last:border-b-0 last:pb-0">
                     <div className="text-xs font-bold text-slate-400 mb-2 font-mono uppercase flex items-center justify-between">
                       <span>Card Code: {card.cardCode}</span>
-                      <span>Contact: {card.savedContactName || (card.availments && card.availments[0]?.contactPersonName) || 'Card Holder'}</span>
+                      <span>{(() => {
+                        const assignedUser = managedUsers.find((user) => user.id === card.assignedUserId);
+                        return assignedUser?.accountType === 'internal_staff'
+                          ? 'Premier Lighting and Sign'
+                          : assignedUser?.companyName || card.assignedUserName || 'Jobber';
+                      })()}</span>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-6 justify-center">
@@ -2322,7 +2342,12 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
                         <div className="my-1 space-y-0.5">
                           <h4 className="font-extrabold text-[11px] text-white tracking-tight line-clamp-1">{card.cardTitle}</h4>
                           <div className="text-[10px] font-semibold text-slate-300 line-clamp-1">
-                            Contact: <span className="text-white font-bold">{card.savedContactName || (card.availments && card.availments[0]?.contactPersonName) || 'Customer / Card Holder'}</span>
+                            <span className="text-white font-bold">{(() => {
+                              const assignedUser = managedUsers.find((user) => user.id === card.assignedUserId);
+                              return assignedUser?.accountType === 'internal_staff'
+                                ? 'Premier Lighting and Sign'
+                                : assignedUser?.companyName || card.assignedUserName || 'Jobber';
+                            })()}</span>
                           </div>
                           {(card.savedContactEmail || (card.availments && card.availments[0]?.contactEmail)) && (
                             <div className="text-[9px] text-slate-400 truncate">{card.savedContactEmail || card.availments?.[0]?.contactEmail}</div>

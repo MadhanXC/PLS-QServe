@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User } from 'firebase/auth';
 import { AdminUserProfile, QrCard, ServiceAvailment } from '../types';
-import { isQrCardFullyUsed, updateAvailmentScheduleDate } from '../lib/userService';
+import { isQrCardUsed, updateAvailmentScheduleDate } from '../lib/userService';
 import { PaginationControls } from './PaginationControls';
 import {
   Calendar,
@@ -209,8 +209,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // Card Stats
   const totalCardsCount = qrCards.length;
-  const activeCardsCount = qrCards.filter((c) => c.status === 'active').length;
-  const usedCardsCount = qrCards.filter((c) => isQrCardFullyUsed(c)).length;
+  const activeCardsCount = qrCards.filter((c) => c.status === 'active' && !isQrCardUsed(c)).length;
+  const usedCardsCount = qrCards.filter((c) => isQrCardUsed(c)).length;
 
   // Filtered Cards for Dashboard List View
   const filteredCards = qrCards.filter((card) => {
@@ -295,7 +295,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Cards</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active / Unused Cards</p>
             <p className="text-2xl font-bold text-emerald-700">{activeCardsCount}</p>
           </div>
         </div>
@@ -305,7 +305,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Used Cards</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active / Used Cards</p>
             <p className="text-2xl font-bold text-indigo-700">{usedCardsCount}</p>
           </div>
         </div>

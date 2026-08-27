@@ -50,6 +50,10 @@ export function isQrCardFullyUsed(
   return card.services.every((service) => availedServices.has(service.trim()));
 }
 
+export function isQrCardUsed(card: Pick<QrCard, 'availments'>): boolean {
+  return (card.availments || []).length > 0;
+}
+
 /**
  * Recursively removes any `undefined` values from an object or array so Firestore updateDoc/setDoc never throws
  * "Unsupported field value: undefined".
@@ -1381,7 +1385,7 @@ export async function submitServiceAvailment(
 
     // Confirmation Email to Customer
     if (customerEmailClean) {
-      sendCustomRequestNotification({
+      await sendCustomRequestNotification({
         recipientEmail: customerEmailClean,
         recipientName: availmentData.contactPersonName,
         recipientType: 'customer',
@@ -1455,7 +1459,7 @@ export async function submitServiceAvailment(
         read: false
       }).catch((e) => console.warn('Jobber info in-app notif error:', e));
 
-      sendCustomRequestNotification({
+      await sendCustomRequestNotification({
         recipientEmail: jobberEmail,
         recipientName: jobberName,
         recipientType: 'managed_user',
@@ -1479,7 +1483,7 @@ export async function submitServiceAvailment(
 
     // Confirmation Email to Customer (Contact Person on Card)
     if (customerEmailClean) {
-      sendCustomRequestNotification({
+      await sendCustomRequestNotification({
         recipientEmail: customerEmailClean,
         recipientName: availmentData.contactPersonName,
         recipientType: 'customer',
@@ -1613,7 +1617,7 @@ export async function respondToCustomRequest(
 
   // Send Decision Email to Customer Contact Person
   if (custEmail) {
-    sendCustomRequestNotification({
+    await sendCustomRequestNotification({
       recipientEmail: custEmail,
       recipientName: custName,
       recipientType: 'customer',
@@ -1959,6 +1963,76 @@ export async function updateServiceRequestCompletion(
     invalidateCache(`booked_counts_${cardData.adminUid}`);
     invalidateCache(`booked_reqs_${cardData.adminUid}`);
   }
+
+  if (params.status === 'completed') {
+    const completedAvailment = updatedAvailments.find((a) => a.id === availmentId);
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://premierlighting.site';
+    const serviceDetails = completedAvailment
+      ? (completedAvailment.customRequestDetails || completedAvailment.remarks || completedAvailment.requestedServices.join(', ') || 'Service Request')
+      : 'Service Request';
+    const customerEmail = (completedAvailment?.contactEmail || cardData.savedContactEmail || '').trim().toLowerCase();
+    const customerName = (completedAvailment?.contactPersonName || cardData.savedContactName || 'Valued Customer').trim();
+    const customerPhone = (completedAvailment?.contactNumber || cardData.savedContactPhone || '').trim();
+    let jobberEmail = (completedAvailment?.managedUserEmail || cardData.assignedUserEmail || '').trim().toLowerCase();
+    let jobberName = completedAvailment?.managedUserName || cardData.assignedUserName || 'Service Jobber';
+
+    if (!jobberEmail && (completedAvailment?.managedUserId || cardData.assignedUserId)) {
+      try {
+        const jobberSnap = await getDoc(doc(db, MANAGED_USERS_COLLECTION, completedAvailment?.managedUserId || cardData.assignedUserId!));
+        if (jobberSnap.exists()) {
+          const jobberData = jobberSnap.data() as ManagedUser;
+          jobberEmail = (jobberData.email || '').trim().toLowerCase();
+          jobberName = jobberData.displayName || jobberName;
+        }
+      } catch (e) {
+        console.warn('Failed to resolve assigned Jobber for completion notification:', e);
+      }
+    }
+
+    if (completedAvailment && customerEmail) {
+      await sendCustomRequestNotification({
+        recipientEmail: customerEmail,
+        recipientName: customerName,
+        recipientType: 'customer',
+        actionType: 'completed',
+        cardCode: cardData.cardCode,
+        cardTitle: cardData.cardTitle,
+        customerName,
+        customerPhone,
+        customerEmail,
+        address: completedAvailment.address || cardData.savedAddress,
+        customRequestDetails: serviceDetails,
+        appointmentDate: completedAvailment.appointmentDate,
+        appointmentTimeSlot: completedAvailment.appointmentTimeSlot,
+        remarks: 'Your service request has been completed. Completion proof is available in your service pass.',
+        portalUrl: baseUrl
+      }).then((res) => {
+        if (!res.success) console.warn('Email to customer on completion was not delivered:', res.message);
+      }).catch((e) => console.warn('Email to customer on completion failed:', e));
+    }
+
+    if (completedAvailment && jobberEmail) {
+      await sendCustomRequestNotification({
+        recipientEmail: jobberEmail,
+        recipientName: jobberName,
+        recipientType: 'managed_user',
+        actionType: 'completed',
+        cardCode: cardData.cardCode,
+        cardTitle: cardData.cardTitle,
+        customerName,
+        customerPhone,
+        customerEmail,
+        address: completedAvailment.address || cardData.savedAddress,
+        customRequestDetails: serviceDetails,
+        appointmentDate: completedAvailment.appointmentDate,
+        appointmentTimeSlot: completedAvailment.appointmentTimeSlot,
+        remarks: 'The service request has been marked completed by the administrator.',
+        portalUrl: baseUrl
+      }).then((res) => {
+        if (!res.success) console.warn('Email to Jobber on completion was not delivered:', res.message);
+      }).catch((e) => console.warn('Email to Jobber on completion failed:', e));
+    }
+  }
 }
 
 /**
@@ -2016,13 +2090,27 @@ export async function updateAvailmentScheduleDate(
     invalidateCache(`booked_reqs_${cardData.adminUid}`);
   }
 
-  // Send In-App & Email notification to assigned Jobber & Customer that service has been scheduled on a date
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://premierlighting.site';
   const customDetails = scheduledAvailment ? (scheduledAvailment.customRequestDetails || scheduledAvailment.remarks || (scheduledAvailment.requestedServices || []).join(', ') || 'Service Request') : 'Service';
 
-  if (cardData.assignedUserEmail && scheduledAvailment) {
+  let jobberEmail = (cardData.assignedUserEmail || '').trim().toLowerCase();
+  let jobberName = cardData.assignedUserName || 'Service Jobber';
+  if (!jobberEmail && cardData.assignedUserId) {
+    try {
+      const jobberSnap = await getDoc(doc(db, MANAGED_USERS_COLLECTION, cardData.assignedUserId));
+      if (jobberSnap.exists()) {
+        const jobberData = jobberSnap.data() as ManagedUser;
+        jobberEmail = (jobberData.email || '').trim().toLowerCase();
+        jobberName = jobberData.displayName || jobberName;
+      }
+    } catch (e) {
+      console.warn('Failed to resolve assigned Jobber for schedule notification:', e);
+    }
+  }
+
+  if (jobberEmail && scheduledAvailment) {
     createInAppNotification({
-      recipientEmail: cardData.assignedUserEmail.toLowerCase(),
+      recipientEmail: jobberEmail,
       recipientType: 'managed_user',
       recipientUid: cardData.assignedUserId,
       title: `📅 Service Appointment Scheduled: ${appointmentDate}`,
@@ -2033,9 +2121,9 @@ export async function updateAvailmentScheduleDate(
       read: false
     }).catch((e) => console.warn('In-app notif error to jobber:', e));
 
-    sendCustomRequestNotification({
-      recipientEmail: cardData.assignedUserEmail,
-      recipientName: cardData.assignedUserName || 'Service Jobber',
+    await sendCustomRequestNotification({
+      recipientEmail: jobberEmail,
+      recipientName: jobberName,
       recipientType: 'managed_user',
       actionType: 'scheduled',
       cardCode: cardData.cardCode,
@@ -2049,7 +2137,49 @@ export async function updateAvailmentScheduleDate(
       appointmentTimeSlot: appointmentTimeSlot,
       remarks: `Admin has scheduled this appointment for ${appointmentDate}`,
       portalUrl: baseUrl
+    }).then((res) => {
+      if (!res.success) console.warn('Email to jobber on schedule was not delivered:', res.message);
     }).catch((e) => console.warn('Email to jobber on schedule failed:', e));
+  }
+
+  if (scheduledAvailment && cardData.adminUid) {
+    try {
+      const adminSnap = await getDoc(doc(db, USERS_COLLECTION, cardData.adminUid));
+        const adminData = adminSnap.exists() ? adminSnap.data() as AdminUserProfile : undefined;
+        const adminEmail = (adminData?.email || 'admin@premierlighting.site').trim().toLowerCase();
+
+        createInAppNotification({
+          recipientEmail: adminEmail,
+          recipientType: 'admin',
+          recipientUid: cardData.adminUid,
+          title: `📅 Service Appointment Scheduled: ${appointmentDate}`,
+          message: `Service for Pass ${cardData.cardCode} and customer ${scheduledAvailment?.contactPersonName} is scheduled for ${appointmentDate}${appointmentTimeSlot ? ` (${appointmentTimeSlot})` : ''}.`,
+          type: 'service_request_created',
+          cardCode: cardData.cardCode,
+          availmentId,
+          read: false
+        }).catch((e) => console.warn('In-app notif error to admin:', e));
+
+        await sendCustomRequestNotification({
+          recipientEmail: adminEmail,
+          recipientName: adminData?.displayName || 'Administrator',
+          recipientType: 'admin',
+          actionType: 'scheduled',
+          cardCode: cardData.cardCode,
+          cardTitle: cardData.cardTitle,
+          customerName: scheduledAvailment.contactPersonName,
+          customerPhone: scheduledAvailment.contactNumber,
+          customerEmail: scheduledAvailment.contactEmail,
+          address: scheduledAvailment.address,
+          customRequestDetails: customDetails,
+          appointmentDate,
+          appointmentTimeSlot,
+          remarks: `The service appointment was scheduled for ${appointmentDate}${appointmentTimeSlot ? ` (${appointmentTimeSlot})` : ''}.`,
+          portalUrl: baseUrl
+        }).catch((e) => console.warn('Email to admin on schedule failed:', e));
+    } catch (e) {
+      console.warn('Admin fetch failed during schedule notification:', e);
+    }
   }
 
   // Send schedule confirmation email to Customer (entered email on card or saved profile)
@@ -2058,7 +2188,7 @@ export async function updateAvailmentScheduleDate(
   const customerPhone = (scheduledAvailment?.contactNumber || cardData.savedContactPhone || '').trim();
 
   if (customerEmail) {
-    sendCustomRequestNotification({
+    await sendCustomRequestNotification({
       recipientEmail: customerEmail,
       recipientName: customerName,
       recipientType: 'customer',

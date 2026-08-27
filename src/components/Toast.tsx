@@ -11,7 +11,7 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss }) => {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-5 right-5 z-[60] flex flex-col gap-2 max-w-sm w-full px-4 pointer-events-none">
+    <div className="fixed top-20 right-3 z-[60] flex flex-col gap-2 max-w-sm w-[calc(100%-1.5rem)] sm:top-auto sm:bottom-5 sm:right-5 sm:w-full sm:px-4 pointer-events-none">
       {toasts.map((toast) => (
         <div
           key={toast.id}

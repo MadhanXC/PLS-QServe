@@ -141,6 +141,11 @@ export const AdminScheduleView: React.FC<AdminScheduleViewProps> = ({
     return list.sort((a, b) => new Date(b.availment.timestamp || 0).getTime() - new Date(a.availment.timestamp || 0).getTime());
   }, [qrCards]);
 
+  const rejectedCustomRequests = useMemo(
+    () => allCustomRequests.filter((item) => item.availment.approvalStatus === 'rejected'),
+    [allCustomRequests]
+  );
+
   // All standard requests across qrCards
   const allStandardRequests = useMemo(() => {
     const list: BookedRequestItem[] = [];
@@ -206,7 +211,7 @@ export const AdminScheduleView: React.FC<AdminScheduleViewProps> = ({
       for (const card of qrCards) {
         if (card.availments && card.availments.length > 0) {
           for (const availment of card.availments) {
-            if (availment.appointmentDate) {
+            if (availment.appointmentDate && !(availment.isCustomRequest && availment.approvalStatus === 'rejected')) {
               const dateKey = availment.appointmentDate;
               counts[dateKey] = (counts[dateKey] || 0) + 1;
               if (availment.isCustomRequest) {
@@ -1312,6 +1317,10 @@ export const AdminScheduleView: React.FC<AdminScheduleViewProps> = ({
                 });
               }
 
+              allRequestsForMonth = allRequestsForMonth.filter(
+                (req) => !(req.availment.isCustomRequest && req.availment.approvalStatus === 'rejected')
+              );
+
               if (allRequestsForMonth.length === 0) {
                 return (
                   <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-2">
@@ -1770,6 +1779,47 @@ export const AdminScheduleView: React.FC<AdminScheduleViewProps> = ({
                 </div>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {rejectedCustomRequests.length > 0 && (
+        <div className="lg:col-span-12 bg-rose-50/50 p-6 rounded-2xl border border-rose-200 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-rose-200 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-rose-600" />
+                <h3 className="font-extrabold text-base text-rose-950">Rejected Custom Requests</h3>
+              </div>
+              <p className="text-xs text-rose-800 mt-0.5">Kept separate from the service schedule because the Jobber declined these requests.</p>
+            </div>
+            <span className="text-xs font-black text-rose-800 bg-rose-100 px-2.5 py-1 rounded-lg border border-rose-200">
+              {rejectedCustomRequests.length} Rejected
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {rejectedCustomRequests.map((req) => (
+              <button
+                key={`${req.cardCode}-${req.availment.id}`}
+                type="button"
+                onClick={() => setSelectedDetailedRequest(req)}
+                className="text-left bg-white border border-rose-200 rounded-xl p-3 hover:border-rose-400 hover:shadow-sm transition-all"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-extrabold text-slate-900 truncate">{req.cardTitle}</div>
+                    <div className="font-mono text-[10px] text-blue-600">{req.cardCode} • REQ #{req.availment.id}</div>
+                  </div>
+                  <span className="shrink-0 text-[9px] font-black uppercase text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded border border-rose-200">Declined</span>
+                </div>
+                <div className="mt-2 text-xs font-bold text-slate-800">{req.availment.contactPersonName || 'Customer'}</div>
+                <div className="mt-1 text-[11px] text-slate-600 line-clamp-2">{req.availment.customRequestDetails || req.availment.remarks || 'No request details provided.'}</div>
+                {req.availment.approvalNotes && (
+                  <div className="mt-2 text-[10px] text-rose-800 line-clamp-2"><strong>Jobber note:</strong> {req.availment.approvalNotes}</div>
+                )}
+                <div className="mt-2 text-[10px] font-bold text-rose-700">Click to view details</div>
+              </button>
+            ))}
           </div>
         </div>
       )}
