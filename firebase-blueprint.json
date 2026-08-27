@@ -1,0 +1,136 @@
+{
+  "entities": {
+    "users": {
+      "title": "Users",
+      "description": "Admin user profiles and roles",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email",
+        "role"
+      ]
+    },
+    "managedUsers": {
+      "title": "Managed Users",
+      "description": "End users and credentials created under admin management",
+      "properties": {
+        "adminUid": {
+          "type": "string"
+        },
+        "adminEmail": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "department": {
+          "type": "string"
+        },
+        "accessLevel": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "adminUid",
+        "displayName",
+        "email",
+        "password"
+      ]
+    },
+    "qrCards": {
+      "title": "QR Service Cards",
+      "description": "QR pass cards with services assigned to managed users",
+      "properties": {
+        "adminUid": {
+          "type": "string"
+        },
+        "cardTitle": {
+          "type": "string"
+        },
+        "cardCode": {
+          "type": "string"
+        },
+        "assignedUserId": {
+          "type": "string"
+        },
+        "assignedUserName": {
+          "type": "string"
+        },
+        "assignedUserEmail": {
+          "type": "string"
+        },
+        "services": {
+          "type": "array"
+        },
+        "validUntil": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "qrData": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "adminUid",
+        "cardTitle",
+        "cardCode",
+        "services"
+      ]
+    }
+  },
+  "securityRules": {
+    "users": {
+      "read": "request.auth != null",
+      "write": "request.auth != null"
+    },
+    "managedUsers": {
+      "read": "true",
+      "write": "request.auth != null"
+    },
+    "qrCards": {
+      "read": "true",
+      "write": "request.auth != null"
+    }
+  }
+}

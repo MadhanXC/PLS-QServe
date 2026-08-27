@@ -1,0 +1,6 @@
+{
+  "name": "PLS QServe",
+  "description": "Digital service pass generation, scheduling, and verification portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
