@@ -1547,11 +1547,9 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                                 )}
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setSelectedListCard(null);
-                                    setSelectedPassId(card.id);
-                                    setExpandedCardHistory((prev) => ({ ...prev, [card.id]: true }));
-                                    setPortalViewMode('cards');
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedListCard(card);
                                   }}
                                   className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-xs transition-colors inline-flex items-center gap-1.5 border border-blue-200/80 shadow-2xs"
                                 >

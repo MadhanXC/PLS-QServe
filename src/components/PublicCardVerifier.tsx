@@ -624,25 +624,6 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
             </span>
           </div>
         </div>
-        {(card.completedAt || (card.completionPhotos && card.completionPhotos.length > 0)) && (
-          <div className="mx-6 mt-6 bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-2">
-            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Service Completed</span>
-            {card.completedAt && (
-              <div className="text-xs font-semibold text-emerald-900">
-                {new Date(card.completedAt).toLocaleString()}
-              </div>
-            )}
-            {card.completionPhotos && card.completionPhotos.length > 0 && (
-              <div className="flex gap-1.5 overflow-x-auto">
-                {card.completionPhotos.map((photo, index) => (
-                  <button key={index} type="button" onClick={() => setPreviewImage(photo)} className="w-12 h-12 rounded border border-emerald-300 overflow-hidden shrink-0">
-                    <img src={photo} alt={`Completion proof ${index + 1}`} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
         <div className="p-6 space-y-6">
           {/* SUCCESS TICKET SCREEN (Shows ONLY this once request is submitted) */}
           {lastSubmittedRequest ? (
