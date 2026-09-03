@@ -454,19 +454,14 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
       });
   }, [userQrCards]);
 
-  const completedServiceCalls = scheduledServiceCalls.filter(({ availment }) => availment.status === 'completed');
   const upcomingServiceCalls = scheduledServiceCalls.filter(({ availment }) => availment.status !== 'completed');
   const SERVICE_SCHEDULE_PAGE_SIZE = 10;
-  const [serviceScheduleView, setServiceScheduleView] = useState<'upcoming' | 'completed'>('upcoming');
   const [serviceSchedulePage, setServiceSchedulePage] = useState(1);
   const passSectionRef = React.useRef<HTMLDivElement>(null);
-  const visibleServiceCalls = serviceScheduleView === 'completed' ? completedServiceCalls : upcomingServiceCalls;
-  const paginatedScheduledServiceCalls = visibleServiceCalls.slice(
+  const paginatedUpcomingServiceCalls = upcomingServiceCalls.slice(
     (serviceSchedulePage - 1) * SERVICE_SCHEDULE_PAGE_SIZE,
     serviceSchedulePage * SERVICE_SCHEDULE_PAGE_SIZE
   );
-  const paginatedUpcomingServiceCalls = paginatedScheduledServiceCalls.filter(({ availment }) => availment.status !== 'completed');
-  const paginatedCompletedServiceCalls = paginatedScheduledServiceCalls.filter(({ availment }) => availment.status === 'completed');
 
   const unreadNotificationsCount = React.useMemo(() => {
     return notifications.filter((n) => !n.read).length;
@@ -858,31 +853,27 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <button type="button" onClick={() => { setServiceScheduleView('upcoming'); setServiceSchedulePage(1); }} className={`text-left rounded-lg border px-3 py-2 transition-colors ${serviceScheduleView === 'upcoming' ? 'bg-blue-100 border-blue-300 ring-1 ring-blue-200' : 'bg-blue-50 border-blue-100 hover:bg-blue-100'}`}>
+            <div className="rounded-lg border px-3 py-2 bg-blue-100 border-blue-300 ring-1 ring-blue-200">
               <div className="text-[10px] font-bold uppercase tracking-wider text-blue-600">Upcoming</div>
               <div className="text-xl font-extrabold text-blue-900">{upcomingServiceCalls.length}</div>
-            </button>
-            <button type="button" onClick={() => { setServiceScheduleView('completed'); setServiceSchedulePage(1); }} className={`text-left rounded-lg border px-3 py-2 transition-colors ${serviceScheduleView === 'completed' ? 'bg-emerald-100 border-emerald-300 ring-1 ring-emerald-200' : 'bg-emerald-50 border-emerald-100 hover:bg-emerald-100'}`}>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Completed</div>
-              <div className="text-xl font-extrabold text-emerald-900">{completedServiceCalls.length}</div>
-            </button>
-            <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 col-span-2 sm:col-span-1">
+            </div>
+            <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 col-span-1">
               <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total Scheduled</div>
               <div className="text-xl font-extrabold text-slate-900">{scheduledServiceCalls.length}</div>
             </div>
           </div>
 
-          {serviceScheduleView === 'upcoming' && (upcomingServiceCalls.length === 0 ? (
+          {upcomingServiceCalls.length === 0 ? (
             <p className="py-4 text-center text-xs font-medium text-slate-400">No upcoming service appointments.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-slate-100">
                   <tr>
-                    <th className="px-3 py-2">Date & Time</th>
+                    <th className="px-3 py-2">Date &amp; Time</th>
                     <th className="px-3 py-2">Service Pass</th>
                     <th className="px-3 py-2">Customer</th>
-                    <th className="px-3 py-2">Address & Details</th>
+                    <th className="px-3 py-2">Address &amp; Details</th>
                     <th className="px-3 py-2">Status</th>
                   </tr>
                 </thead>
@@ -890,70 +881,24 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                   {paginatedUpcomingServiceCalls.map(({ card, availment }) => (
                     <tr key={`${card.id}-${availment.id}`} className="hover:bg-slate-50">
                       <td className="px-3 py-3 font-bold text-slate-800 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                          {availment.appointmentDate}
-                        </div>
-                        {availment.appointmentTimeSlot && (
-                          <div className="mt-1 flex items-center gap-1.5 text-[10px] font-medium text-slate-500">
-                            <Clock className="w-3 h-3" /> {availment.appointmentTimeSlot}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-emerald-600" />{availment.appointmentDate}</div>
+                        {availment.appointmentTimeSlot && <div className="mt-1 flex items-center gap-1.5 text-[10px] font-medium text-slate-500"><Clock className="w-3 h-3" /> {availment.appointmentTimeSlot}</div>}
                       </td>
-                      <td className="px-3 py-3">
-                        <div className="font-bold text-slate-800">{card.cardTitle}</div>
-                        <div className="font-mono text-[10px] text-blue-600">{card.cardCode}</div>
-                      </td>
+                      <td className="px-3 py-3"><div className="font-bold text-slate-800">{card.cardTitle}</div><div className="font-mono text-[10px] text-blue-600">{card.cardCode}</div></td>
                       <td className="px-3 py-3 font-semibold text-slate-700">{availment.contactPersonName || 'Customer'}</td>
-                      <td className="px-3 py-3 min-w-[220px]">
-                        <div className="flex items-start gap-1.5 text-[10px] text-slate-600">
-                          <MapPin className="w-3 h-3 mt-0.5 shrink-0 text-rose-500" />
-                          <span>{availment.address ? `${availment.address.streetAddress}, ${availment.address.city}, ${availment.address.state} ${availment.address.zipCode}` : 'Address not provided'}</span>
-                        </div>
-                        <div className="mt-1 font-medium text-slate-700">{availment.customRequestDetails || availment.remarks || (availment.requestedServices || []).join(', ') || 'Service Request'}</div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className={`px-2 py-1 rounded border text-[10px] font-extrabold uppercase ${
-                          availment.status === 'completed'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
-                        }`}>
-                          {availment.status === 'completed' ? 'Completed' : 'Scheduled'}
-                        </span>
-                      </td>
+                      <td className="px-3 py-3 min-w-[220px]"><div className="flex items-start gap-1.5 text-[10px] text-slate-600"><MapPin className="w-3 h-3 mt-0.5 shrink-0 text-rose-500" /><span>{availment.address ? `${availment.address.streetAddress}, ${availment.address.city}, ${availment.address.state} ${availment.address.zipCode}` : 'Address not provided'}</span></div><div className="mt-1 font-medium text-slate-700">{availment.customRequestDetails || availment.remarks || (availment.requestedServices || []).join(', ') || 'Service Request'}</div></td>
+                      <td className="px-3 py-3"><span className="px-2 py-1 rounded border text-[10px] font-extrabold uppercase bg-blue-50 text-blue-700 border-blue-200">Scheduled</span></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-          ))}
-
-          {serviceScheduleView === 'completed' && completedServiceCalls.length > 0 && (
-            <div className="border-t border-emerald-100 pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="text-sm font-extrabold text-emerald-900">Completed Services</h3>
-                  <p className="text-[11px] text-slate-500">Completed service history and completion details</p>
-                </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded">{completedServiceCalls.length} Completed</span>
-              </div>
-              <div className="space-y-2">
-                {paginatedCompletedServiceCalls.map(({ card, availment }) => (
-                  <div key={`${card.id}-${availment.id}`} className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-3 flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-5">
-                    <div className="font-bold text-slate-800 min-w-[150px]">{availment.appointmentDate}<div className="text-[10px] font-mono font-medium text-blue-600">{card.cardCode}</div></div>
-                    <div className="min-w-[150px]"><div className="font-bold text-slate-800">{card.cardTitle}</div><div className="text-[10px] text-slate-600">{availment.contactPersonName || 'Customer'}</div></div>
-                    <div className="flex-1 text-[11px] text-slate-600"><span className="font-semibold text-slate-700">{availment.customRequestDetails || availment.remarks || (availment.requestedServices || []).join(', ') || 'Service Request'}</span>{availment.address && <span className="block mt-0.5">{availment.address.streetAddress}, {availment.address.city}, {availment.address.state} {availment.address.zipCode}</span>}</div>
-                    <span className="self-start lg:self-auto px-2 py-1 rounded border border-emerald-200 bg-white text-[10px] font-extrabold uppercase text-emerald-700">Completed</span>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
           {scheduledServiceCalls.length > SERVICE_SCHEDULE_PAGE_SIZE && (
             <PaginationControls
               currentPage={serviceSchedulePage}
-              totalItems={visibleServiceCalls.length}
+              totalItems={upcomingServiceCalls.length}
               pageSize={SERVICE_SCHEDULE_PAGE_SIZE}
               onPageChange={setServiceSchedulePage}
             />
@@ -1292,6 +1237,24 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                                         ))}
                                       </div>
                                     )}
+                                    {a.completionPhotos && a.completionPhotos.length > 0 && (
+                                      <div className="flex items-center gap-1">
+                                        {a.completionPhotos.map((pUrl, pIdx) => (
+                                          <button
+                                            key={pIdx}
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setPreviewPhoto(pUrl);
+                                            }}
+                                            className="w-8 h-8 rounded-lg border-2 border-emerald-300 overflow-hidden hover:scale-105 transition-transform"
+                                            title="View completion proof"
+                                          >
+                                            <img src={pUrl} alt="Completion proof" className="w-full h-full object-cover" />
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 </td>
                                 <td className="px-4 py-3.5">
@@ -1407,6 +1370,7 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                         <th className="px-4 py-3">Card Code & Title</th>
                         <th className="px-4 py-3">Holder / Availed Address</th>
                         <th className="px-4 py-3">Included Services</th>
+                        <th className="px-4 py-3">Service Photos</th>
                         <th className="px-4 py-3">Usage Progress</th>
                         <th className="px-4 py-3">Valid Until</th>
                         <th className="px-4 py-3">Status</th>
@@ -1436,6 +1400,10 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                         const hasPendingCustom = customAvailments.some(
                           (a) => !a.approvalStatus || a.approvalStatus === 'pending_approval'
                         );
+                        const servicePhotos = availments.flatMap((availment) => [
+                          ...(availment.photos || []).map((url) => ({ url, label: 'Service photo' })),
+                          ...(availment.completionPhotos || []).map((url) => ({ url, label: 'Completion proof' }))
+                        ]);
 
                         return (
                           <tr key={card.id} className="hover:bg-slate-50/80 transition-colors">
@@ -1506,6 +1474,27 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                                   );
                                 })}
                               </div>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              {servicePhotos.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5 max-w-[150px]">
+                                  {servicePhotos.map(({ url, label }, photoIndex) => (
+                                    <button
+                                      key={`${label}-${photoIndex}`}
+                                      type="button"
+                                      onClick={() => setPreviewPhoto(url)}
+                                      className={`relative w-9 h-9 rounded-lg overflow-hidden border-2 hover:scale-105 transition-transform ${
+                                        label === 'Completion proof' ? 'border-emerald-300' : 'border-slate-200'
+                                      }`}
+                                      title={`View ${label.toLowerCase()}`}
+                                    >
+                                      <img src={url} alt={`${label} ${photoIndex + 1}`} className="w-full h-full object-cover" />
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 italic">No photos</span>
+                              )}
                             </td>
                             <td className="px-4 py-3.5">
                               <div className="font-bold text-slate-800">
@@ -2616,6 +2605,32 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {selectedCustomDetailModal.availment.completionPhotos && selectedCustomDetailModal.availment.completionPhotos.length > 0 && (
+                <div className="space-y-1.5 p-3 rounded-xl bg-emerald-50/80 border border-emerald-200">
+                  <span className="text-[10px] uppercase font-extrabold text-emerald-700 block tracking-wider">
+                    Completion Proof Photos ({selectedCustomDetailModal.availment.completionPhotos.length})
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCustomDetailModal.availment.completionPhotos.map((pUrl, pIdx) => (
+                      <button
+                        key={pIdx}
+                        type="button"
+                        onClick={() => setPreviewPhoto(pUrl)}
+                        className="w-16 h-16 rounded-xl border-2 border-emerald-300 overflow-hidden hover:scale-105 transition-transform shadow-2xs"
+                        title="Click to zoom completion photo"
+                      >
+                        <img src={pUrl} alt={`Completion proof ${pIdx + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                  {selectedCustomDetailModal.availment.completedAt && (
+                    <p className="text-[10px] font-semibold text-emerald-700">
+                      Completed on {new Date(selectedCustomDetailModal.availment.completedAt).toLocaleString()}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
