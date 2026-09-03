@@ -105,6 +105,8 @@ export interface QrCard {
   validUntil: string;
   firstAvailedDate?: string; // Date when a service was first availed (validity becomes 1 year from this date)
   status: QrCardStatus;
+  completedAt?: string;
+  completionPhotos?: string[];
   qrData: string;
   verificationUrl: string;
   savedAddress?: UsAddress;

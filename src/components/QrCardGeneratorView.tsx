@@ -2230,6 +2230,34 @@ export const QrCardGeneratorView: React.FC<QrCardGeneratorViewProps> = ({
               </div>
             </div>
 
+            {previewCard.availments && previewCard.availments.length > 0 && (
+              <div className="text-left space-y-2 pt-2 border-t border-slate-100">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Service Completion</span>
+                {previewCard.availments.map((availment) => (
+                  <div key={availment.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5">
+                    <div className="text-[11px] font-bold text-slate-800">{availment.requestedServices.join(', ')}</div>
+                    {availment.completedAt && (
+                      <div className="text-[11px] text-emerald-700 font-semibold">
+                        Completed: {new Date(availment.completedAt).toLocaleString()}
+                      </div>
+                    )}
+                    {availment.completionPhotos && availment.completionPhotos.length > 0 && (
+                      <div className="flex gap-1.5 overflow-x-auto">
+                        {availment.completionPhotos.map((photo, index) => (
+                          <img
+                            key={index}
+                            src={photo}
+                            alt={`Completion proof ${index + 1}`}
+                            className="w-12 h-12 rounded border border-emerald-200 object-cover shrink-0"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="pt-2 flex justify-center">
               <button
                 onClick={() => setPreviewCard(null)}

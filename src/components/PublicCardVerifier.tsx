@@ -624,6 +624,25 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
             </span>
           </div>
         </div>
+        {(card.completedAt || (card.completionPhotos && card.completionPhotos.length > 0)) && (
+          <div className="mx-6 mt-6 bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-2">
+            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Service Completed</span>
+            {card.completedAt && (
+              <div className="text-xs font-semibold text-emerald-900">
+                {new Date(card.completedAt).toLocaleString()}
+              </div>
+            )}
+            {card.completionPhotos && card.completionPhotos.length > 0 && (
+              <div className="flex gap-1.5 overflow-x-auto">
+                {card.completionPhotos.map((photo, index) => (
+                  <button key={index} type="button" onClick={() => setPreviewImage(photo)} className="w-12 h-12 rounded border border-emerald-300 overflow-hidden shrink-0">
+                    <img src={photo} alt={`Completion proof ${index + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <div className="p-6 space-y-6">
           {/* SUCCESS TICKET SCREEN (Shows ONLY this once request is submitted) */}
           {lastSubmittedRequest ? (
@@ -1381,6 +1400,28 @@ export const PublicCardVerifier: React.FC<PublicCardVerifierProps> = ({
                     {req.remarks && (
                       <div className="text-slate-600 text-[11px] italic bg-white p-1.5 rounded border border-slate-200 mt-1">
                         "{req.remarks}"
+                      </div>
+                    )}
+                    {(req.completedAt || (card.availments?.[0]?.id === req.id ? card.completedAt : undefined)) && (
+                      <div className="text-emerald-800 font-bold text-[11px] flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Completed: {new Date(req.completedAt || card.completedAt!).toLocaleString()}
+                      </div>
+                    )}
+                    {((req.completionPhotos && req.completionPhotos.length > 0) ||
+                      (card.availments?.[0]?.id === req.id && card.completionPhotos && card.completionPhotos.length > 0)) && (
+                      <div className="pt-1 flex items-center gap-1 overflow-x-auto">
+                        <span className="text-[10px] text-emerald-700 font-bold shrink-0">Completion proof:</span>
+                        {(req.completionPhotos || card.completionPhotos || []).map((pUrl, pIdx) => (
+                          <button
+                            key={pIdx}
+                            type="button"
+                            onClick={() => setPreviewImage(pUrl)}
+                            className="w-8 h-8 rounded border border-emerald-300 overflow-hidden shrink-0"
+                          >
+                            <img src={pUrl} alt={`Completion proof ${pIdx + 1}`} className="w-full h-full object-cover" />
+                          </button>
+                        ))}
                       </div>
                     )}
                     {req.photos && req.photos.length > 0 && (

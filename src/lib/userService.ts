@@ -1947,13 +1947,38 @@ export async function updateServiceRequestCompletion(
       return a;
     })
   );
+  if (!updatedAvailments.some((availment) => availment.id === availmentId)) {
+    throw new Error(`Service request "${availmentId}" was not found on QR card "${cardCode}".`);
+  }
+
+  const updatedCardStatus: QrCardStatus = isQrCardFullyUsed({
+    services: cardData.services || [],
+    availments: updatedAvailments,
+    status: cardData.status
+  }) ? 'used' : cardData.status === 'used' ? 'active' : cardData.status;
+  const completedAvailment = updatedAvailments.find((a) => a.id === availmentId);
 
   await updateDoc(
     docSnap.ref,
     cleanForFirestore({
       availments: updatedAvailments,
+      status: updatedCardStatus,
+      completedAt: completedAvailment?.completedAt || cardData.completedAt || null,
+      completionPhotos: completedAvailment?.completionPhotos || cardData.completionPhotos || [],
       updatedAt: new Date().toISOString()
     })
+  );
+
+  updateCachedList<QrCard>('qrcards', (list) =>
+    list.map((card) => card.id === docSnap.id
+      ? {
+          ...card,
+          availments: updatedAvailments,
+          status: updatedCardStatus,
+          completedAt: completedAvailment?.completedAt || card.completedAt,
+          completionPhotos: completedAvailment?.completionPhotos || card.completionPhotos
+        }
+      : card)
   );
 
   invalidateCache('qrcards');
@@ -1965,7 +1990,6 @@ export async function updateServiceRequestCompletion(
   }
 
   if (params.status === 'completed') {
-    const completedAvailment = updatedAvailments.find((a) => a.id === availmentId);
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://premierlighting.site';
     const serviceDetails = completedAvailment
       ? (completedAvailment.customRequestDetails || completedAvailment.remarks || completedAvailment.requestedServices.join(', ') || 'Service Request')

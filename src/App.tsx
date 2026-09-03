@@ -16,7 +16,8 @@ import {
   deleteQrCard,
   deleteBulkQrCards,
   subscribeToQrCards,
-  subscribeToManagedUsers
+  subscribeToManagedUsers,
+  isQrCardFullyUsed
 } from './lib/userService';
 import { deduplicateList } from './lib/cacheService';
 import { AdminUserProfile, AuthMode, ToastMessage, ManagedUser, AccessLevel, ManagedUserStatus, QrCard, QrCardStatus, InAppNotification } from './types';
@@ -368,14 +369,26 @@ export default function App() {
   };
 
   const handleUpdateCardAvailment = (cardCode: string, availmentId: string, status: string, photos: string[]) => {
+    const completedAt = status === 'completed' ? new Date().toISOString() : undefined;
     setQrCards((prev) =>
       prev.map((c) => {
         if (c.cardCode === cardCode && c.availments) {
+          const updatedAvailments = c.availments.map((a) =>
+            a.id === availmentId
+              ? { ...a, status: status as any, completionPhotos: photos, ...(completedAt ? { completedAt } : {}) }
+              : a
+          );
+          const updatedCardStatus = isQrCardFullyUsed({
+            services: c.services,
+            availments: updatedAvailments,
+            status: c.status
+          }) ? 'used' : c.status === 'used' ? 'active' : c.status;
           return {
             ...c,
-            availments: c.availments.map((a) =>
-              a.id === availmentId ? { ...a, status: status as any, completionPhotos: photos } : a
-            )
+            availments: updatedAvailments,
+            status: updatedCardStatus,
+            ...(completedAt ? { completedAt, completionPhotos: photos } : {}),
+            updatedAt: new Date().toISOString()
           };
         }
         return c;
