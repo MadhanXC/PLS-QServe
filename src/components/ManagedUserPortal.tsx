@@ -2203,7 +2203,7 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
 
       {/* Photo Lightbox Preview Modal */}
       {previewPhoto && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="relative max-w-3xl w-full bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-2xl flex flex-col items-center">
             <button
               onClick={() => setPreviewPhoto(null)}
