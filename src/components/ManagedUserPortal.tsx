@@ -84,6 +84,7 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
   const [portalViewMode, setPortalViewMode] = useState<'cards' | 'list'>('list');
   const [portalSection, setPortalSection] = useState<'credentials' | 'organization'>('credentials');
   const [selectedPassId, setSelectedPassId] = useState<string | null>(null);
+  const [selectedListCard, setSelectedListCard] = useState<QrCard | null>(null);
   const [passesCurrentPage, setPassesCurrentPage] = useState<number>(1);
   const [copied, setCopied] = useState(false);
 
@@ -1400,13 +1401,17 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                         const hasPendingCustom = customAvailments.some(
                           (a) => !a.approvalStatus || a.approvalStatus === 'pending_approval'
                         );
-                        const servicePhotos = availments.flatMap((availment) => [
-                          ...(availment.photos || []).map((url) => ({ url, label: 'Service photo' })),
-                          ...(availment.completionPhotos || []).map((url) => ({ url, label: 'Completion proof' }))
-                        ]);
+                        const servicePhotoCount = availments.reduce(
+                          (count, availment) => count + (availment.photos?.length || 0) + (availment.completionPhotos?.length || 0),
+                          0
+                        );
 
                         return (
-                          <tr key={card.id} className="hover:bg-slate-50/80 transition-colors">
+                          <tr
+                            key={card.id}
+                            onClick={() => setSelectedListCard(card)}
+                            className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                          >
                             <td className="px-4 py-3.5">
                               <div className="font-bold text-slate-900">{card.cardTitle}</div>
                               <div className="font-mono text-[11px] text-blue-600 font-semibold">{card.cardCode}</div>
@@ -1476,22 +1481,10 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                               </div>
                             </td>
                             <td className="px-4 py-3.5">
-                              {servicePhotos.length > 0 ? (
-                                <div className="flex flex-wrap gap-1.5 max-w-[150px]">
-                                  {servicePhotos.map(({ url, label }, photoIndex) => (
-                                    <button
-                                      key={`${label}-${photoIndex}`}
-                                      type="button"
-                                      onClick={() => setPreviewPhoto(url)}
-                                      className={`relative w-9 h-9 rounded-lg overflow-hidden border-2 hover:scale-105 transition-transform ${
-                                        label === 'Completion proof' ? 'border-emerald-300' : 'border-slate-200'
-                                      }`}
-                                      title={`View ${label.toLowerCase()}`}
-                                    >
-                                      <img src={url} alt={`${label} ${photoIndex + 1}`} className="w-full h-full object-cover" />
-                                    </button>
-                                  ))}
-                                </div>
+                              {servicePhotoCount > 0 ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-extrabold">
+                                  <ImageIcon className="w-3 h-3" /> {servicePhotoCount} Photo{servicePhotoCount === 1 ? '' : 's'}
+                                </span>
                               ) : (
                                 <span className="text-[10px] text-slate-400 italic">No photos</span>
                               )}
@@ -1555,6 +1548,7 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => {
+                                    setSelectedListCard(null);
                                     setSelectedPassId(card.id);
                                     setExpandedCardHistory((prev) => ({ ...prev, [card.id]: true }));
                                     setPortalViewMode('cards');
@@ -2189,6 +2183,99 @@ export const ManagedUserPortal: React.FC<ManagedUserPortalProps> = ({
       </div>
         </div>
       </main>
+
+      {selectedListCard && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="relative max-w-2xl w-full max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200">
+            <div className="sticky top-0 z-10 p-5 bg-slate-900 text-white flex items-center justify-between">
+              <div>
+                <h3 className="font-extrabold text-base">Service Pass Details</h3>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  {selectedListCard.cardTitle} <span className="font-mono text-blue-300">({selectedListCard.cardCode})</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedListCard(null)}
+                className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10"
+                aria-label="Close service pass details"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="block text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Included Services</span>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedListCard.services.map((service) => (
+                      <span key={service} className="px-2 py-1 rounded bg-blue-50 border border-blue-200 text-blue-800 font-bold">{service}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                  <span className="block text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Pass Status</span>
+                  <div className="font-bold text-slate-900">{selectedListCard.status}</div>
+                  <div className="text-slate-600">Valid until: {selectedListCard.validUntil || 'N/A'}</div>
+                </div>
+              </div>
+
+              {selectedListCard.availments?.length ? (
+                <div className="space-y-3">
+                  <h4 className="font-extrabold text-slate-900 border-b border-slate-200 pb-2">Service Requests &amp; Photos</h4>
+                  {selectedListCard.availments.map((availment, index) => (
+                    <div key={availment.id || index} className="p-3 rounded-xl border border-slate-200 bg-white space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-bold text-slate-900">
+                          {availment.isCustomRequest ? 'Custom Service Request' : (availment.requestedServices || []).join(', ') || 'Service Request'}
+                        </div>
+                        <span className="px-2 py-0.5 rounded border bg-slate-50 text-slate-600 text-[10px] font-extrabold uppercase">
+                          {availment.status || availment.approvalStatus || 'Pending'}
+                        </span>
+                      </div>
+                      <div className="text-slate-600">
+                        {availment.customRequestDetails || availment.remarks || 'No additional request details.'}
+                      </div>
+                      <div className="text-[10px] text-slate-500">
+                        Customer: {availment.contactPersonName || 'N/A'}{availment.appointmentDate ? ` | Appointment: ${availment.appointmentDate}` : ''}
+                      </div>
+
+                      {availment.photos?.length ? (
+                        <div>
+                          <span className="block text-[10px] uppercase tracking-wider font-extrabold text-slate-500 mb-1.5">Service Photos</span>
+                          <div className="flex flex-wrap gap-2">
+                            {availment.photos.map((photo, photoIndex) => (
+                              <button key={photoIndex} type="button" onClick={() => setPreviewPhoto(photo)} className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 hover:border-blue-500">
+                                <img src={photo} alt={`Service photo ${photoIndex + 1}`} className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {availment.completionPhotos?.length ? (
+                        <div>
+                          <span className="block text-[10px] uppercase tracking-wider font-extrabold text-emerald-700 mb-1.5">Completion Proof Photos</span>
+                          <div className="flex flex-wrap gap-2">
+                            {availment.completionPhotos.map((photo, photoIndex) => (
+                              <button key={photoIndex} type="button" onClick={() => setPreviewPhoto(photo)} className="w-16 h-16 rounded-lg overflow-hidden border-2 border-emerald-300 hover:border-emerald-600">
+                                <img src={photo} alt={`Completion proof ${photoIndex + 1}`} className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-center">No service requests yet.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Photo Lightbox Preview Modal */}
       {previewPhoto && (
